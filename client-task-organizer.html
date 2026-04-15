@@ -183,11 +183,33 @@
     .sidebar { width: 220px; min-width: 180px; }
     .main-header, .filter-bar, .task-list, .client-info-bar, .section-tabs { padding-left: 16px; padding-right: 16px; }
   }
+  /* Login Screen */
+  .login-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #1A1A2E; display: flex; align-items: center; justify-content: center; z-index: 300; }
+  .login-box { background: #fff; border-radius: 16px; padding: 40px 36px; width: 90%; max-width: 360px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); text-align: center; }
+  .login-logo { font-family: 'Playfair Display', serif; font-size: 32px; font-weight: 700; color: #1A1A2E; margin-bottom: 6px; }
+  .login-sub { font-size: 14px; color: #888; margin-bottom: 24px; }
+  .login-input { width: 100%; padding: 12px 16px; border-radius: 10px; border: 1px solid #E0E0EE; font-size: 16px; font-family: 'DM Sans', sans-serif; outline: none; text-align: center; letter-spacing: 2px; margin-bottom: 12px; }
+  .login-input:focus { border-color: #5B6ABF; }
+  .login-btn { width: 100%; padding: 12px; border-radius: 10px; border: none; background: #5B6ABF; color: #fff; font-size: 15px; font-weight: 600; cursor: pointer; font-family: 'DM Sans', sans-serif; }
+  .login-btn:hover { background: #4A59AE; }
+  .login-error { color: #E84D3D; font-size: 13px; margin-top: 8px; min-height: 20px; }
+
 </style>
 </head>
 <body>
 
-<div class="app" id="app">
+<!-- Login Screen -->
+<div class="login-overlay" id="loginScreen">
+  <div class="login-box">
+    <div class="login-logo">Clientflow</div>
+    <div class="login-sub">Enter your team password to continue</div>
+    <input class="login-input" id="loginPassword" type="password" placeholder="Password" onkeydown="if(event.key==='Enter')attemptLogin()">
+    <button class="login-btn" onclick="attemptLogin()">Sign In</button>
+    <div class="login-error" id="loginError"></div>
+  </div>
+</div>
+
+<div class="app" id="app" style="display:none">
   <!-- Sidebar -->
   <div class="sidebar">
     <div class="sidebar-header">
@@ -1119,7 +1141,31 @@ document.getElementById('taskTitleInput').addEventListener('keydown', e => {
   if (e.key === 'Escape') closeTaskModal();
 });
 
-load();
+// --- Authentication ---
+const TEAM_PASSWORD = 'Clientflow2026';
+
+function attemptLogin() {
+  const input = document.getElementById('loginPassword').value;
+  if (input === TEAM_PASSWORD) {
+    sessionStorage.setItem('cf-auth', 'true');
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('app').style.display = 'flex';
+    load();
+  } else {
+    document.getElementById('loginError').textContent = 'Incorrect password. Try again.';
+    document.getElementById('loginPassword').value = '';
+    document.getElementById('loginPassword').focus();
+  }
+}
+
+// Auto-login if already authenticated this session
+if (sessionStorage.getItem('cf-auth') === 'true') {
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+  load();
+} else {
+  setTimeout(() => document.getElementById('loginPassword').focus(), 100);
+}
 </script>
 </body>
 </html>
