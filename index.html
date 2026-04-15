@@ -10,10 +10,16 @@
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: 'DM Sans', sans-serif; background: #FAFAFE; color: #1A1A2E; height: 100vh; overflow: hidden; }
-
   .app { display: flex; height: 100vh; }
-
-  /* Sidebar */
+  .login-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #1A1A2E; display: flex; align-items: center; justify-content: center; z-index: 300; }
+  .login-box { background: #fff; border-radius: 16px; padding: 40px 36px; width: 90%; max-width: 360px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); text-align: center; }
+  .login-logo { font-family: 'Playfair Display', serif; font-size: 32px; font-weight: 700; color: #1A1A2E; margin-bottom: 6px; }
+  .login-sub { font-size: 14px; color: #888; margin-bottom: 24px; }
+  .login-input { width: 100%; padding: 12px 16px; border-radius: 10px; border: 1px solid #E0E0EE; font-size: 16px; font-family: 'DM Sans', sans-serif; outline: none; text-align: center; letter-spacing: 2px; margin-bottom: 12px; }
+  .login-input:focus { border-color: #5B6ABF; }
+  .login-btn { width: 100%; padding: 12px; border-radius: 10px; border: none; background: #5B6ABF; color: #fff; font-size: 15px; font-weight: 600; cursor: pointer; font-family: 'DM Sans', sans-serif; }
+  .login-btn:hover { background: #4A59AE; }
+  .login-error { color: #E84D3D; font-size: 13px; margin-top: 8px; min-height: 20px; }
   .sidebar { width: 280px; min-width: 220px; background: #1A1A2E; color: #fff; display: flex; flex-direction: column; overflow: hidden; }
   .sidebar-header { padding: 28px 20px 12px; }
   .logo { font-family: 'Playfair Display', serif; font-size: 26px; font-weight: 700; letter-spacing: -0.5px; }
@@ -22,8 +28,7 @@
   .sync-dot { width: 7px; height: 7px; border-radius: 50%; background: #4CAF6A; }
   .sync-dot.offline { background: #E84D3D; }
   .sync-dot.syncing { background: #E8A33D; animation: pulse 1s infinite; }
-  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
-
+  @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
   .client-list { flex: 1; overflow-y: auto; padding: 8px 12px; }
   .client-card { padding: 12px 14px; border-radius: 8px; margin-bottom: 6px; cursor: pointer; transition: background .15s; background: rgba(255,255,255,0.04); }
   .client-card:hover { background: rgba(255,255,255,0.08); }
@@ -36,7 +41,6 @@
   .stat-chip { font-size: 11px; padding: 2px 8px; border-radius: 50px; background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.55); }
   .stat-chip.done { background: #E8F5E8; color: #2E7D46; }
   .stat-chip.active-tasks { background: #FFF4E0; color: #B8860B; }
-
   .stat-chip.hmp { background: #E0E7FF; color: #4338CA; font-weight: 600; }
   .hmp-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 50px; background: #E0E7FF; color: #4338CA; }
   .hmp-check-row { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
@@ -45,101 +49,39 @@
   .modal .hmp-check-row label { color: #555; }
   .hmp-month-tag { font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 50px; background: #E0E7FF; color: #4338CA; white-space: nowrap; }
   .month-badge { font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 50px; background: #F0EDFF; color: #6D28D9; white-space: nowrap; }
-
   .section-tabs { display: flex; gap: 0; padding: 0 28px; border-bottom: 1px solid #E0E0EE; }
-  .section-tab { padding: 10px 20px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; background: none; color: #888; font-family: 'DM Sans', sans-serif; border-bottom: 2px solid transparent; transition: all .15s; }
-  .section-tab:hover { color: #555; }
+  .section-tab { padding: 10px 20px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; background: none; color: #888; font-family: 'DM Sans', sans-serif; border-bottom: 2px solid transparent; }
   .section-tab.active { color: #1A1A2E; border-bottom-color: #1A1A2E; }
   .section-tab.hmp-tab.active { color: #4338CA; border-bottom-color: #4338CA; }
   .section-tab .tab-count { font-size: 11px; font-weight: 400; color: #aaa; margin-left: 4px; }
-
   .month-group { margin-bottom: 16px; }
   .month-group-header { font-size: 13px; font-weight: 700; color: #4338CA; padding: 8px 0 6px; display: flex; align-items: center; gap: 8px; }
   .month-group-header .month-line { flex: 1; height: 1px; background: #E0E7FF; }
   .month-group-header .month-count { font-size: 11px; font-weight: 400; color: #8B8BB8; }
-  .add-hmp-task-btn { padding: 8px 18px; border-radius: 8px; border: 1px dashed #C7D2FE; background: #F5F3FF; color: #4338CA; font-size: 13px; font-weight: 600; cursor: pointer; font-family: 'DM Sans', sans-serif; white-space: nowrap; }
-  .add-hmp-task-btn:hover { background: #EDE9FE; border-color: #A5B4FC; }
-  .no-month-note { font-size: 12px; color: #aaa; font-style: italic; margin-left: 26px; margin-top: 2px; }
-  .vendor-tag { font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 50px; background: #FDF2F8; color: #BE185D; white-space: nowrap; }
-  .vendor-line { font-size: 12px; color: #BE185D; margin-top: 3px; margin-left: 26px; display: flex; align-items: center; gap: 4px; }
-  .vendor-line .vendor-icon { font-size: 12px; }
-
-  /* Image upload & gallery */
-  .img-upload-area { margin-bottom: 10px; }
-  .img-upload-btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 8px; border: 1px dashed #C7C7D6; background: #FAFAFE; color: #666; font-size: 13px; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all .15s; }
-  .img-upload-btn:hover { border-color: #5B6ABF; color: #5B6ABF; background: #F5F3FF; }
-  .img-upload-btn input[type="file"] { display: none; }
-  .img-preview-grid { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
-  .img-preview-item { position: relative; width: 72px; height: 72px; border-radius: 8px; overflow: hidden; border: 1px solid #E0E0EE; }
-  .img-preview-item img { width: 100%; height: 100%; object-fit: cover; cursor: pointer; }
-  .img-preview-remove { position: absolute; top: 2px; right: 2px; width: 20px; height: 20px; border-radius: 50%; background: rgba(0,0,0,0.6); color: #fff; border: none; font-size: 13px; line-height: 20px; text-align: center; cursor: pointer; padding: 0; }
-  .img-preview-remove:hover { background: #E84D3D; }
-  .task-images { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; margin-left: 26px; }
-  .task-thumb { width: 48px; height: 48px; border-radius: 6px; overflow: hidden; border: 1px solid #E0E0EE; cursor: pointer; flex-shrink: 0; }
-  .task-thumb img { width: 100%; height: 100%; object-fit: cover; }
-  .img-count-badge { display: inline-flex; align-items: center; gap: 3px; font-size: 11px; color: #888; padding: 2px 0; }
-
-  /* Lightbox */
-  .lightbox-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.85); display: flex; align-items: center; justify-content: center; z-index: 200; cursor: pointer; }
-  .lightbox-img { max-width: 90vw; max-height: 85vh; border-radius: 8px; object-fit: contain; box-shadow: 0 8px 32px rgba(0,0,0,0.4); }
-  .lightbox-close { position: fixed; top: 16px; right: 20px; background: rgba(255,255,255,0.15); border: none; color: #fff; font-size: 28px; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-  .lightbox-close:hover { background: rgba(255,255,255,0.3); }
-  .lightbox-nav { position: fixed; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.15); border: none; color: #fff; font-size: 24px; width: 44px; height: 44px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-  .lightbox-nav:hover { background: rgba(255,255,255,0.3); }
-  .lightbox-prev { left: 16px; }
-  .lightbox-next { right: 16px; }
-
-  /* Subcontractor section */
-  .sub-section { background: #F8F8FC; border: 1px solid #E8E8F0; border-radius: 10px; padding: 14px; margin-bottom: 10px; }
-  .sub-section-title { font-size: 12px; font-weight: 700; color: #5B6ABF; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
-  .sub-row { display: flex; gap: 10px; margin-bottom: 8px; }
-  .sub-row:last-child { margin-bottom: 0; }
-  .sub-field { flex: 1; }
-  .sub-field label { font-size: 11px; font-weight: 600; color: #888; display: block; margin-bottom: 3px; }
-  .sub-field input, .sub-field select { width: 100%; padding: 7px 10px; border-radius: 6px; border: 1px solid #E0E0EE; font-size: 13px; font-family: 'DM Sans', sans-serif; outline: none; background: #fff; }
-  .sub-field input:focus, .sub-field select:focus { border-color: #5B6ABF; }
-  .sub-info-line { font-size: 12px; color: #5B6ABF; margin-top: 3px; margin-left: 26px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-  .sub-info-line .sub-name { font-weight: 600; }
-  .sub-info-line .sub-sep { color: #ccc; }
-  .sub-status-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 2px; }
-  .sub-status-tag { font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 50px; white-space: nowrap; }
-
+  .add-hmp-task-btn { padding: 8px 18px; border-radius: 8px; border: 1px dashed #C7D2FE; background: #F5F3FF; color: #4338CA; font-size: 13px; font-weight: 600; cursor: pointer; font-family: 'DM Sans', sans-serif; }
   .add-client-btn { margin: 8px 12px 16px; padding: 10px 0; border-radius: 8px; border: 1px dashed rgba(255,255,255,0.2); background: none; color: rgba(255,255,255,0.5); cursor: pointer; font-size: 13px; font-family: 'DM Sans', sans-serif; }
-  .add-client-btn:hover { border-color: rgba(255,255,255,0.4); color: rgba(255,255,255,0.7); }
-
   .add-client-form { padding: 12px; margin: 0 12px 16px; background: rgba(255,255,255,0.06); border-radius: 8px; }
   .sidebar-input { width: 100%; padding: 8px 10px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.06); color: #fff; font-size: 13px; font-family: 'DM Sans', sans-serif; outline: none; }
+  .sidebar-input + .sidebar-input { margin-top: 6px; }
   .color-row { display: flex; gap: 8px; margin-top: 10px; }
-  .color-dot { width: 20px; height: 20px; border-radius: 50%; cursor: pointer; transition: transform .1s; }
-  .color-dot:hover { transform: scale(1.15); }
-  .color-dot.selected { outline: 2px solid currentColor; outline-offset: 2px; }
-
+  .color-dot { width: 20px; height: 20px; border-radius: 50%; cursor: pointer; }
   .form-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 12px; }
   .cancel-btn { padding: 6px 14px; border-radius: 6px; border: none; background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.6); font-size: 13px; cursor: pointer; font-family: 'DM Sans', sans-serif; }
-  .cancel-btn:hover { background: rgba(255,255,255,0.14); }
   .primary-btn { padding: 6px 16px; border-radius: 6px; border: none; background: #5B6ABF; color: #fff; font-size: 13px; font-weight: 600; cursor: pointer; font-family: 'DM Sans', sans-serif; }
-  .primary-btn:hover { background: #4A59AE; }
   .danger-text { color: #E84D3D !important; }
-
-  /* Main */
   .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
   .main-header { display: flex; justify-content: space-between; align-items: flex-start; padding: 24px 28px 0; flex-wrap: wrap; gap: 12px; }
   .main-title { font-size: 22px; font-weight: 700; margin: 0; display: flex; align-items: center; gap: 10px; font-family: 'Playfair Display', serif; }
   .color-indicator { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
   .main-subtitle { font-size: 13px; color: #888; margin-top: 4px; }
-  .add-task-btn { padding: 8px 18px; border-radius: 8px; border: none; background: #1A1A2E; color: #fff; font-size: 13px; font-weight: 600; cursor: pointer; font-family: 'DM Sans', sans-serif; white-space: nowrap; }
-  .add-task-btn:hover { background: #2A2A3E; }
-
+  .add-task-btn { padding: 8px 18px; border-radius: 8px; border: none; background: #1A1A2E; color: #fff; font-size: 13px; font-weight: 600; cursor: pointer; font-family: 'DM Sans', sans-serif; }
   .filter-bar { display: flex; gap: 12px; padding: 16px 28px; align-items: center; flex-wrap: wrap; }
   .search-input { padding: 7px 12px; border-radius: 6px; border: 1px solid #E0E0EE; background: #fff; font-size: 13px; font-family: 'DM Sans', sans-serif; width: 180px; outline: none; }
-  .search-input:focus { border-color: #5B6ABF; }
   .filter-group { display: flex; gap: 4px; }
   .filter-chip { padding: 5px 12px; border-radius: 50px; border: 1px solid #E0E0EE; background: #fff; font-size: 12px; cursor: pointer; font-family: 'DM Sans', sans-serif; color: #666; }
-  .filter-chip:hover { background: #F0F0F5; }
   .filter-chip.active { background: #1A1A2E; color: #fff; border-color: #1A1A2E; }
-
   .task-list { flex: 1; overflow-y: auto; padding: 0 28px 28px; }
-  .task-row { display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; background: #fff; border-radius: 10px; margin-bottom: 8px; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.04); transition: box-shadow .15s; flex-wrap: wrap; gap: 8px; }
+  .task-row { display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; background: #fff; border-radius: 10px; margin-bottom: 8px; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.04); flex-wrap: wrap; gap: 8px; }
   .task-row:hover { box-shadow: 0 3px 10px rgba(0,0,0,0.08); }
   .task-row.done { opacity: 0.6; }
   .task-main { flex: 1; min-width: 200px; }
@@ -150,12 +92,9 @@
   .task-notes { font-size: 12px; color: #888; margin-top: 4px; margin-left: 26px; line-height: 1.4; }
   .task-meta { display: flex; gap: 6px; align-items: center; flex-shrink: 0; }
   .badge { font-size: 11px; padding: 3px 10px; border-radius: 50px; font-weight: 500; }
-
   .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1; padding: 40px; }
   .empty-icon { font-size: 48px; margin-bottom: 12px; opacity: 0.4; }
   .empty-text { font-size: 14px; color: #888; text-align: center; }
-
-  /* Modal */
   .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; z-index: 100; }
   .modal { background: #fff; border-radius: 14px; padding: 28px; width: 90%; max-width: 440px; box-shadow: 0 16px 48px rgba(0,0,0,0.15); max-height: 90vh; overflow-y: auto; }
   .modal-title { font-size: 18px; font-weight: 700; margin-bottom: 16px; font-family: 'Playfair Display', serif; }
@@ -166,9 +105,6 @@
   .modal-label { font-size: 12px; font-weight: 600; color: #888; display: block; margin-bottom: 4px; }
   .modal-select { width: 100%; padding: 8px 10px; border-radius: 8px; border: 1px solid #E0E0EE; font-size: 13px; font-family: 'DM Sans', sans-serif; outline: none; background: #fff; }
   .modal-textarea { width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid #E0E0EE; font-size: 13px; font-family: 'DM Sans', sans-serif; outline: none; resize: vertical; margin-bottom: 4px; }
-  .modal-textarea:focus, .modal-select:focus { border-color: #5B6ABF; }
-
-  /* Client Info Banner */
   .client-info-bar { display: flex; gap: 20px; padding: 12px 28px; flex-wrap: wrap; align-items: center; }
   .client-info-item { display: flex; align-items: center; gap: 6px; font-size: 13px; color: #555; background: #fff; padding: 6px 14px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
   .client-info-icon { font-size: 15px; opacity: 0.6; }
@@ -176,996 +112,145 @@
   .client-info-value { color: #1A1A2E; }
   .client-info-none { color: #bbb; font-style: italic; }
   .edit-client-btn { padding: 6px 14px; border-radius: 8px; border: 1px solid #E0E0EE; background: #fff; font-size: 12px; font-weight: 500; cursor: pointer; font-family: 'DM Sans', sans-serif; color: #666; display: flex; align-items: center; gap: 4px; }
-  .edit-client-btn:hover { background: #F0F0F5; border-color: #ccc; }
-  .sidebar-input + .sidebar-input { margin-top: 6px; }
-
-  @media (max-width: 700px) {
-    .sidebar { width: 220px; min-width: 180px; }
-    .main-header, .filter-bar, .task-list, .client-info-bar, .section-tabs { padding-left: 16px; padding-right: 16px; }
-  }
-  /* Login Screen */
-  .login-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #1A1A2E; display: flex; align-items: center; justify-content: center; z-index: 300; }
-  .login-box { background: #fff; border-radius: 16px; padding: 40px 36px; width: 90%; max-width: 360px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); text-align: center; }
-  .login-logo { font-family: 'Playfair Display', serif; font-size: 32px; font-weight: 700; color: #1A1A2E; margin-bottom: 6px; }
-  .login-sub { font-size: 14px; color: #888; margin-bottom: 24px; }
-  .login-input { width: 100%; padding: 12px 16px; border-radius: 10px; border: 1px solid #E0E0EE; font-size: 16px; font-family: 'DM Sans', sans-serif; outline: none; text-align: center; letter-spacing: 2px; margin-bottom: 12px; }
-  .login-input:focus { border-color: #5B6ABF; }
-  .login-btn { width: 100%; padding: 12px; border-radius: 10px; border: none; background: #5B6ABF; color: #fff; font-size: 15px; font-weight: 600; cursor: pointer; font-family: 'DM Sans', sans-serif; }
-  .login-btn:hover { background: #4A59AE; }
-  .login-error { color: #E84D3D; font-size: 13px; margin-top: 8px; min-height: 20px; }
-
+  .email-send-btn { padding: 7px 14px; border-radius: 8px; border: 1px solid #5B6ABF; background: #F5F3FF; color: #5B6ABF; font-size: 12px; font-weight: 600; cursor: pointer; font-family: 'DM Sans', sans-serif; }
+  .email-send-btn:hover { background: #5B6ABF; color: #fff; }
+  .email-info-btn { padding: 3px 10px; border-radius: 6px; border: 1px solid #5B6ABF; background: #F5F3FF; color: #5B6ABF; font-size: 11px; font-weight: 600; cursor: pointer; font-family: 'DM Sans', sans-serif; text-decoration: none; margin-left: 4px; }
+  .email-info-btn:hover { background: #5B6ABF; color: #fff; }
+  .img-upload-area { margin-bottom: 10px; }
+  .img-upload-btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 8px; border: 1px dashed #C7C7D6; background: #FAFAFE; color: #666; font-size: 13px; cursor: pointer; font-family: 'DM Sans', sans-serif; }
+  .img-upload-btn input[type="file"] { display: none; }
+  .img-preview-grid { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+  .img-preview-item { position: relative; width: 72px; height: 72px; border-radius: 8px; overflow: hidden; border: 1px solid #E0E0EE; }
+  .img-preview-item img { width: 100%; height: 100%; object-fit: cover; cursor: pointer; }
+  .img-preview-remove { position: absolute; top: 2px; right: 2px; width: 20px; height: 20px; border-radius: 50%; background: rgba(0,0,0,0.6); color: #fff; border: none; font-size: 13px; line-height: 20px; text-align: center; cursor: pointer; padding: 0; }
+  .task-images { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; margin-left: 26px; }
+  .task-thumb { width: 48px; height: 48px; border-radius: 6px; overflow: hidden; border: 1px solid #E0E0EE; cursor: pointer; }
+  .task-thumb img { width: 100%; height: 100%; object-fit: cover; }
+  .img-count-badge { font-size: 11px; color: #888; }
+  .lightbox-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.85); display: flex; align-items: center; justify-content: center; z-index: 200; cursor: pointer; }
+  .lightbox-img { max-width: 90vw; max-height: 85vh; border-radius: 8px; object-fit: contain; }
+  .lightbox-close { position: fixed; top: 16px; right: 20px; background: rgba(255,255,255,0.15); border: none; color: #fff; font-size: 28px; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  .lightbox-nav { position: fixed; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.15); border: none; color: #fff; font-size: 24px; width: 44px; height: 44px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  .lightbox-prev { left: 16px; }
+  .lightbox-next { right: 16px; }
+  .sub-section { background: #F8F8FC; border: 1px solid #E8E8F0; border-radius: 10px; padding: 14px; margin-bottom: 10px; }
+  .sub-section-title { font-size: 12px; font-weight: 700; color: #5B6ABF; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; justify-content: space-between; }
+  .sub-row { display: flex; gap: 10px; margin-bottom: 8px; }
+  .sub-field { flex: 1; }
+  .sub-field label { font-size: 11px; font-weight: 600; color: #888; display: block; margin-bottom: 3px; }
+  .sub-field input, .sub-field select { width: 100%; padding: 7px 10px; border-radius: 6px; border: 1px solid #E0E0EE; font-size: 13px; font-family: 'DM Sans', sans-serif; outline: none; background: #fff; }
+  .sub-info-line { font-size: 12px; color: #5B6ABF; margin-top: 3px; margin-left: 26px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .sub-info-line .sub-name { font-weight: 600; }
+  .sub-info-line .sub-sep { color: #ccc; }
+  .sub-status-tag { font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 50px; }
+  .add-sub-btn { padding: 6px 14px; border-radius: 7px; border: 1px dashed #C7C7D6; background: #FAFAFE; color: #5B6ABF; font-size: 12px; font-weight: 600; cursor: pointer; font-family: 'DM Sans', sans-serif; margin-bottom: 10px; }
+  .remove-sub-btn { padding: 4px 10px; border-radius: 6px; border: 1px solid #E0E0EE; background: #fff; color: #E84D3D; font-size: 11px; font-weight: 600; cursor: pointer; font-family: 'DM Sans', sans-serif; }
+  @media (max-width:700px) { .sidebar{width:220px;min-width:180px;} .main-header,.filter-bar,.task-list,.client-info-bar,.section-tabs{padding-left:16px;padding-right:16px;} }
 </style>
 </head>
 <body>
-
-<!-- Login Screen -->
-<div class="login-overlay" id="loginScreen">
-  <div class="login-box">
-    <div class="login-logo">Clientflow</div>
-    <div class="login-sub">Enter your team password to continue</div>
-    <input class="login-input" id="loginPassword" type="password" placeholder="Password" onkeydown="if(event.key==='Enter')attemptLogin()">
-    <button class="login-btn" onclick="attemptLogin()">Sign In</button>
-    <div class="login-error" id="loginError"></div>
-  </div>
-</div>
-
+<div class="login-overlay" id="loginScreen"><div class="login-box"><div class="login-logo">Clientflow</div><div class="login-sub">Enter your team password</div><input class="login-input" id="loginPassword" type="password" placeholder="Password" onkeydown="if(event.key==='Enter')attemptLogin()"><button class="login-btn" onclick="attemptLogin()">Sign In</button><div class="login-error" id="loginError"></div></div></div>
 <div class="app" id="app" style="display:none">
-  <!-- Sidebar -->
-  <div class="sidebar">
-    <div class="sidebar-header">
-      <div class="logo">Clientflow</div>
-      <div class="subtitle" id="clientCount">0 clients</div>
-      <div class="sync-indicator" id="syncStatus"><span class="sync-dot syncing" id="syncDot"></span><span id="syncText">Connecting...</span></div>
-    </div>
-    <div class="client-list" id="clientList"></div>
-    <div id="addClientArea">
-      <button class="add-client-btn" id="showAddClientBtn" onclick="toggleAddClient(true)">+ New Client</button>
-    </div>
-  </div>
-
-  <!-- Main -->
+  <div class="sidebar"><div class="sidebar-header"><div class="logo">Clientflow</div><div class="subtitle" id="clientCount">0 clients</div><div class="sync-indicator"><span class="sync-dot syncing" id="syncDot"></span><span id="syncText">Connecting...</span></div></div><div class="client-list" id="clientList"></div><div id="addClientArea"><button class="add-client-btn" onclick="toggleAddClient(true)">+ New Client</button></div></div>
   <div class="main" id="mainPanel"></div>
 </div>
-
-<!-- Add Task Modal -->
-<div class="modal-overlay" id="taskModal" style="display:none" onclick="closeTaskModal()">
-  <div class="modal" onclick="event.stopPropagation()">
-    <div class="modal-title" id="taskModalTitle">New Task</div>
-    <input class="modal-input" id="taskTitleInput" placeholder="Task title">
-    <div class="modal-row">
-      <div class="modal-field">
-        <label class="modal-label">Status</label>
-        <select class="modal-select" id="taskStatusSelect">
-          <option value="To Do">To Do</option>
-          <option value="In Progress">In Progress</option>
-          <option value="Done">Done</option>
-        </select>
-      </div>
-      <div class="modal-field" id="taskPriorityField">
-        <label class="modal-label">Priority</label>
-        <select class="modal-select" id="taskPrioritySelect">
-          <option value="high">High</option>
-          <option value="medium" selected>Medium</option>
-          <option value="low">Low</option>
-        </select>
-      </div>
-    </div>
-    <div class="modal-row" id="taskHmpRow" style="display:none">
-      <div class="modal-field">
-        <label class="modal-label">Scheduled Month</label>
-        <select class="modal-select" id="taskMonthSelect">
-          <option value="">— No month —</option>
-          <option value="All Months">All Months</option>
-          <option value="January">January</option>
-          <option value="February">February</option>
-          <option value="March">March</option>
-          <option value="April">April</option>
-          <option value="May">May</option>
-          <option value="June">June</option>
-          <option value="July">July</option>
-          <option value="August">August</option>
-          <option value="September">September</option>
-          <option value="October">October</option>
-          <option value="November">November</option>
-          <option value="December">December</option>
-        </select>
-      </div>
-      <div class="modal-field">
-        <label class="modal-label">Frequency</label>
-        <select class="modal-select" id="taskScheduleSelect">
-          <option value="">— None —</option>
-          <option value="Weekly">Weekly</option>
-          <option value="Every Month">Every Month</option>
-          <option value="Quarterly">Quarterly</option>
-          <option value="Bi-Annual">Bi-Annual</option>
-          <option value="Annual">Annual</option>
-          <option value="One-Time">One-Time</option>
-        </select>
-      </div>
-    </div>
-    <div id="taskVendorRow" style="display:none">
-      <label class="modal-label">Vendor / Assigned To</label>
-      <input class="modal-input" id="taskVendorInput" placeholder="e.g. ABC Landscaping, Joe's HVAC">
-    </div>
-    <div class="hmp-check-row" id="taskHmpCheckRow" style="display:none;margin-bottom:8px">
-      <input type="checkbox" id="taskHmpCheck" onchange="toggleHmpFields()">
-      <label for="taskHmpCheck" style="color:#555">Mark as HMP maintenance task</label>
-    </div>
-    <div class="sub-section">
-      <div class="sub-section-title">👷 Subcontractor</div>
-      <div class="sub-row">
-        <div class="sub-field" style="flex:2">
-          <label>Subcontractor Name</label>
-          <input list="subcontractorList" id="taskSubName" placeholder="Select or type a name">
-          <datalist id="subcontractorList"></datalist>
-        </div>
-        <div class="sub-field">
-          <label>Status</label>
-          <select id="taskSubStatus">
-            <option value="">— None —</option>
-            <option value="Scheduled">Scheduled</option>
-            <option value="Confirmed">Confirmed</option>
-            <option value="In Progress">In Progress</option>
-            <option value="Completed">Completed</option>
-            <option value="Cancelled">Cancelled</option>
-            <option value="Pending">Pending</option>
-          </select>
-        </div>
-      </div>
-      <div class="sub-row">
-        <div class="sub-field">
-          <label>Date</label>
-          <input type="date" id="taskSubDate">
-        </div>
-      </div>
-    </div>
-    <textarea class="modal-textarea" id="taskNotesInput" rows="3" placeholder="Notes (optional)"></textarea>
-    <div class="img-upload-area">
-      <label class="modal-label">Photos</label>
-      <label class="img-upload-btn">
-        📷 Add Photos
-        <input type="file" id="taskImageInput" accept="image/*" multiple onchange="handleImageUpload(event)">
-      </label>
-      <div class="img-preview-grid" id="taskImagePreviews"></div>
-    </div>
-    <div class="form-actions" id="taskModalActions"></div>
-  </div>
-</div>
-
-<!-- Lightbox -->
-<div class="lightbox-overlay" id="lightbox" style="display:none" onclick="closeLightbox()">
-  <button class="lightbox-close" onclick="closeLightbox()">&times;</button>
-  <button class="lightbox-nav lightbox-prev" onclick="event.stopPropagation(); navLightbox(-1)">&#8249;</button>
-  <img class="lightbox-img" id="lightboxImg" onclick="event.stopPropagation()">
-  <button class="lightbox-nav lightbox-next" onclick="event.stopPropagation(); navLightbox(1)">&#8250;</button>
-</div>
-
-<!-- Edit Client Modal -->
-<div class="modal-overlay" id="clientModal" style="display:none" onclick="closeClientModal()">
-  <div class="modal" onclick="event.stopPropagation()">
-    <div class="modal-title" id="clientModalTitle">Edit Client</div>
-    <label class="modal-label">Name</label>
-    <input class="modal-input" id="editClientName" placeholder="Client name">
-    <label class="modal-label">Address</label>
-    <input class="modal-input" id="editClientAddress" placeholder="123 Main St, City, ST 12345">
-    <div class="modal-row">
-      <div class="modal-field">
-        <label class="modal-label">Phone</label>
-        <input class="modal-input" id="editClientPhone" placeholder="(555) 123-4567" style="margin-bottom:0">
-      </div>
-      <div class="modal-field">
-        <label class="modal-label">Gate Code</label>
-        <input class="modal-input" id="editClientGate" placeholder="e.g. #1234" style="margin-bottom:0">
-      </div>
-    </div>
-    <div style="margin-top:12px">
-      <label class="modal-label">Color</label>
-      <div class="color-row" id="editClientColors" style="margin-top:4px"></div>
-    </div>
-    <div class="hmp-check-row" style="margin-top:14px">
-      <input type="checkbox" id="editClientHmp">
-      <label for="editClientHmp">HMP Client (monthly maintenance tasks)</label>
-    </div>
-    <div class="form-actions" style="margin-top:16px">
-      <button class="cancel-btn" onclick="closeClientModal()">Cancel</button>
-      <button class="primary-btn" onclick="saveClientEdit()">Save</button>
-    </div>
-  </div>
-</div>
-
+<div class="modal-overlay" id="taskModal" style="display:none" onclick="closeTaskModal()"><div class="modal" onclick="event.stopPropagation()"><div class="modal-title" id="taskModalTitle">New Task</div><input class="modal-input" id="taskTitleInput" placeholder="Task title"><div class="modal-row"><div class="modal-field"><label class="modal-label">Status</label><select class="modal-select" id="taskStatusSelect"><option value="To Do">To Do</option><option value="In Progress">In Progress</option><option value="Done">Done</option></select></div><div class="modal-field" id="taskPriorityField"><label class="modal-label">Priority</label><select class="modal-select" id="taskPrioritySelect"><option value="high">High</option><option value="medium" selected>Medium</option><option value="low">Low</option></select></div></div><div class="modal-row" id="taskHmpRow" style="display:none"><div class="modal-field"><label class="modal-label">Scheduled Month</label><select class="modal-select" id="taskMonthSelect"><option value="">— No month —</option><option value="All Months">All Months</option><option>January</option><option>February</option><option>March</option><option>April</option><option>May</option><option>June</option><option>July</option><option>August</option><option>September</option><option>October</option><option>November</option><option>December</option></select></div><div class="modal-field"><label class="modal-label">Frequency</label><select class="modal-select" id="taskScheduleSelect"><option value="">— None —</option><option>Weekly</option><option>Every Month</option><option>Quarterly</option><option>Bi-Annual</option><option>Annual</option><option>One-Time</option></select></div></div><div class="hmp-check-row" id="taskHmpCheckRow" style="display:none;margin-bottom:8px"><input type="checkbox" id="taskHmpCheck" onchange="toggleHmpFields()"><label for="taskHmpCheck" style="color:#555">Mark as HMP maintenance task</label></div><div id="subcontractorsContainer"></div><button type="button" class="add-sub-btn" onclick="addSubSection()">+ Add Subcontractor</button><datalist id="subcontractorList"></datalist><textarea class="modal-textarea" id="taskNotesInput" rows="3" placeholder="Notes (optional)"></textarea><div class="img-upload-area"><label class="modal-label">Photos</label><label class="img-upload-btn">📷 Add Photos<input type="file" id="taskImageInput" accept="image/*" multiple onchange="handleImageUpload(event)"></label><div class="img-preview-grid" id="taskImagePreviews"></div></div><div class="form-actions" id="taskModalActions"></div></div></div>
+<div class="lightbox-overlay" id="lightbox" style="display:none" onclick="closeLightbox()"><button class="lightbox-close" onclick="closeLightbox()">&times;</button><button class="lightbox-nav lightbox-prev" onclick="event.stopPropagation();navLightbox(-1)">&#8249;</button><img class="lightbox-img" id="lightboxImg" onclick="event.stopPropagation()"><button class="lightbox-nav lightbox-next" onclick="event.stopPropagation();navLightbox(1)">&#8250;</button></div>
+<div class="modal-overlay" id="clientModal" style="display:none" onclick="closeClientModal()"><div class="modal" onclick="event.stopPropagation()"><div class="modal-title">Edit Client</div><label class="modal-label">Name</label><input class="modal-input" id="editClientName" placeholder="Client name"><label class="modal-label">Address</label><input class="modal-input" id="editClientAddress" placeholder="123 Main St, City, ST 12345"><div class="modal-row"><div class="modal-field"><label class="modal-label">Her Phone</label><input class="modal-input" id="editClientHerPhone" placeholder="(555) 123-4567" style="margin-bottom:0"></div><div class="modal-field"><label class="modal-label">His Phone</label><input class="modal-input" id="editClientHisPhone" placeholder="(555) 765-4321" style="margin-bottom:0"></div></div><div class="modal-row"><div class="modal-field"><label class="modal-label">Gate Code</label><input class="modal-input" id="editClientGate" placeholder="#1234" style="margin-bottom:0"></div></div><div style="margin-top:4px"><label class="modal-label">Email 1</label><div style="display:flex;gap:8px;align-items:center;margin-bottom:8px"><input class="modal-input" id="editClientEmail1" placeholder="email@example.com" style="margin-bottom:0;flex:1"><button class="email-send-btn" onclick="sendEmail('editClientEmail1')">✉ Email</button></div><label class="modal-label">Email 2</label><div style="display:flex;gap:8px;align-items:center;margin-bottom:4px"><input class="modal-input" id="editClientEmail2" placeholder="email@example.com" style="margin-bottom:0;flex:1"><button class="email-send-btn" onclick="sendEmail('editClientEmail2')">✉ Email</button></div></div><div style="margin-top:12px"><label class="modal-label">Color</label><div class="color-row" id="editClientColors" style="margin-top:4px"></div></div><div class="hmp-check-row" style="margin-top:14px"><input type="checkbox" id="editClientHmp"><label for="editClientHmp">HMP Client (monthly maintenance tasks)</label></div><div class="form-actions" style="margin-top:16px"><button class="cancel-btn" onclick="closeClientModal()">Cancel</button><button class="primary-btn" onclick="saveClientEdit()">Save</button></div></div></div>
 <script>
-const COLORS = ['#5B6ABF','#BF5B5B','#5BBF8A','#BF8A5B','#8A5BBF','#5BA8BF','#BF5B8A','#6ABF5B'];
-const PRIORITY = {
-  high:   { bg:'#FFE4E1', border:'#E84D3D', label:'High' },
-  medium: { bg:'#FFF4E0', border:'#E8A33D', label:'Med' },
-  low:    { bg:'#E8F5E8', border:'#4CAF6A', label:'Low' },
-};
-const STATUS_LIST = ['To Do','In Progress','Done'];
+const COLORS=['#5B6ABF','#BF5B5B','#5BBF8A','#BF8A5B','#8A5BBF','#5BA8BF','#BF5B8A','#6ABF5B'];
+const PRIORITY={high:{bg:'#FFE4E1',border:'#E84D3D',label:'High'},medium:{bg:'#FFF4E0',border:'#E8A33D',label:'Med'},low:{bg:'#E8F5E8',border:'#4CAF6A',label:'Low'}};
+const STATUS_LIST=['To Do','In Progress','Done'];
+const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
+const HMP_MONTHLY_TASKS=[{title:'HVAC filter inspection & replacement',priority:'high',month:'Every Month'},{title:'Smoke & CO detector battery test',priority:'high',month:'Every Month'},{title:'Lawn mowing & edging',priority:'medium',month:'Every Month'},{title:'Inspect plumbing for leaks',priority:'medium',month:'Every Month'},{title:'Clean gutters & downspouts',priority:'medium',month:'Quarterly'},{title:'Pressure wash driveway & walkways',priority:'low',month:'Quarterly'},{title:'Pest control inspection',priority:'medium',month:'Quarterly'},{title:'Check weatherstripping on doors & windows',priority:'low',month:'Quarterly'},{title:'Inspect roof & attic for damage',priority:'high',month:'Bi-Annual'},{title:'Service irrigation / sprinkler system',priority:'medium',month:'Bi-Annual'},{title:'Deep clean dryer vent',priority:'high',month:'Bi-Annual'},{title:'Flush water heater',priority:'medium',month:'Annual'},{title:'Full HVAC system service',priority:'high',month:'Annual'},{title:'Inspect foundation & grading',priority:'medium',month:'Annual'},{title:'Tree trimming & landscaping review',priority:'low',month:'Annual'},{title:'Exterior paint & siding inspection',priority:'low',month:'Annual'}];
+const SUB_COLORS={'Scheduled':{bg:'#E0E7FF',color:'#4338CA'},'Confirmed':{bg:'#DBEAFE',color:'#1D4ED8'},'In Progress':{bg:'#FFF4E0',color:'#B8860B'},'Completed':{bg:'#E8F5E8',color:'#2E7D46'},'Cancelled':{bg:'#FFE4E1',color:'#E84D3D'},'Pending':{bg:'#F3F4F6',color:'#6B7280'}};
 
-const HMP_MONTHLY_TASKS = [
-  { title: 'HVAC filter inspection & replacement', priority: 'high', month: 'Every Month' },
-  { title: 'Smoke & CO detector battery test', priority: 'high', month: 'Every Month' },
-  { title: 'Lawn mowing & edging', priority: 'medium', month: 'Every Month' },
-  { title: 'Inspect plumbing for leaks', priority: 'medium', month: 'Every Month' },
-  { title: 'Clean gutters & downspouts', priority: 'medium', month: 'Quarterly' },
-  { title: 'Pressure wash driveway & walkways', priority: 'low', month: 'Quarterly' },
-  { title: 'Pest control inspection', priority: 'medium', month: 'Quarterly' },
-  { title: 'Check weatherstripping on doors & windows', priority: 'low', month: 'Quarterly' },
-  { title: 'Inspect roof & attic for damage', priority: 'high', month: 'Bi-Annual' },
-  { title: 'Service irrigation / sprinkler system', priority: 'medium', month: 'Bi-Annual' },
-  { title: 'Deep clean dryer vent', priority: 'high', month: 'Bi-Annual' },
-  { title: 'Flush water heater', priority: 'medium', month: 'Annual' },
-  { title: 'Full HVAC system service', priority: 'high', month: 'Annual' },
-  { title: 'Inspect foundation & grading', priority: 'medium', month: 'Annual' },
-  { title: 'Tree trimming & landscaping review', priority: 'low', month: 'Annual' },
-  { title: 'Exterior paint & siding inspection', priority: 'low', month: 'Annual' },
-];
+firebase.initializeApp({apiKey:"AIzaSyCDQ-qSdPOeESryaNzr5UN0xRDJ2MyWO7A",authDomain:"services-3e475.firebaseapp.com",databaseURL:"https://services-3e475-default-rtdb.firebaseio.com",projectId:"services-3e475",storageBucket:"services-3e475.firebasestorage.app",messagingSenderId:"389984261303",appId:"1:389984261303:web:063df6c348ed82687f6932"});
+const dataRef=firebase.database().ref('clientflow');
+let data={clients:[],nextClientId:1,nextTaskId:1},activeClientId=null,filterStatus='All',filterPriority='All',searchTerm='',editingTaskId=null,selectedColor=COLORS[0],viewTab='tasks',taskImages=[],lightboxImages=[],lightboxIndex=0,saving=false,editingClientColor='',taskSubSections=[];
+const TEAM_PASSWORD='Clientflow2026';
 
-// Firebase Configuration
-const firebaseConfig = {
-  apiKey: "AIzaSyCDQ-qSdPOeESryaNzr5UN0xRDJ2MyWO7A",
-  authDomain: "services-3e475.firebaseapp.com",
-  databaseURL: "https://services-3e475-default-rtdb.firebaseio.com",
-  projectId: "services-3e475",
-  storageBucket: "services-3e475.firebasestorage.app",
-  messagingSenderId: "389984261303",
-  appId: "1:389984261303:web:063df6c348ed82687f6932"
-};
-firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
-const dataRef = db.ref('clientflow');
+function attemptLogin(){if(document.getElementById('loginPassword').value===TEAM_PASSWORD){sessionStorage.setItem('cf-auth','true');document.getElementById('loginScreen').style.display='none';document.getElementById('app').style.display='flex';load();}else{document.getElementById('loginError').textContent='Incorrect password.';document.getElementById('loginPassword').value='';}}
+if(sessionStorage.getItem('cf-auth')==='true'){document.getElementById('loginScreen').style.display='none';document.getElementById('app').style.display='flex';}
 
-let data = { clients: [], nextClientId: 1, nextTaskId: 1 };
-let activeClientId = null;
-let filterStatus = 'All';
-let filterPriority = 'All';
-let searchTerm = '';
-let editingTaskId = null;
-let selectedColor = COLORS[0];
-let viewTab = 'tasks';
-let taskImages = [];
-let lightboxImages = [];
-let lightboxIndex = 0;
-const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-let saving = false;
+firebase.database().ref('.info/connected').on('value',s=>{const d=document.getElementById('syncDot'),t=document.getElementById('syncText');if(s.val()){d.className='sync-dot';t.textContent='Synced live';}else{d.className='sync-dot offline';t.textContent='Offline';}});
 
-// Connection status
-firebase.database().ref('.info/connected').on('value', snap => {
-  const dot = document.getElementById('syncDot');
-  const txt = document.getElementById('syncText');
-  if (snap.val() === true) {
-    dot.className = 'sync-dot';
-    txt.textContent = 'Synced live';
-  } else {
-    dot.className = 'sync-dot offline';
-    txt.textContent = 'Offline';
-  }
-});
+function load(){dataRef.on('value',snap=>{if(saving)return;const v=snap.val();if(v){data=v;if(!data.clients)data.clients=[];data.clients.forEach(c=>{if(!c.tasks)c.tasks=[];});if(!data.nextClientId)data.nextClientId=1;if(!data.nextTaskId)data.nextTaskId=1;if(activeClientId&&!getClient(activeClientId))activeClientId=data.clients.length?data.clients[0].id:null;if(!activeClientId&&data.clients.length)activeClientId=data.clients[0].id;}render();});}
+function save(){saving=true;const d=document.getElementById('syncDot'),t=document.getElementById('syncText');d.className='sync-dot syncing';t.textContent='Saving...';dataRef.set(data).then(()=>{d.className='sync-dot';t.textContent='Synced live';saving=false;}).catch(()=>{d.className='sync-dot offline';t.textContent='Error';saving=false;});}
 
-// Persistence — real-time sync from Firebase
-function load() {
-  dataRef.on('value', snapshot => {
-    if (saving) return; // skip echo from our own save
-    const val = snapshot.val();
-    if (val) {
-      data = val;
-      // Ensure arrays exist (Firebase drops empty arrays)
-      if (!data.clients) data.clients = [];
-      data.clients.forEach(c => { if (!c.tasks) c.tasks = []; });
-      if (!data.nextClientId) data.nextClientId = 1;
-      if (!data.nextTaskId) data.nextTaskId = 1;
-      if (activeClientId && !getClient(activeClientId)) {
-        activeClientId = data.clients.length > 0 ? data.clients[0].id : null;
-      }
-      if (!activeClientId && data.clients.length > 0) {
-        activeClientId = data.clients[0].id;
-      }
-    }
-    render();
-  });
+function getClient(id){return data.clients.find(c=>c.id===id);}
+function stats(c){const t=c.tasks.length,d=c.tasks.filter(x=>x.status==='Done').length,p=c.tasks.filter(x=>x.status==='In Progress').length;return{total:t,done:d,inProgress:p};}
+function esc(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML;}
+function formatDate(d){if(!d)return '';const o=new Date(d+'T00:00:00');return o.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});}
+function formatTime(t){if(!t)return '';const[h,m]=t.split(':');const hr=parseInt(h);return(hr%12||12)+':'+m+(hr>=12?' PM':' AM');}
+function subTag(st){const c=SUB_COLORS[st]||{bg:'#F3F4F6',color:'#6B7280'};return `<span class="sub-status-tag" style="background:${c.bg};color:${c.color}">${st}</span>`;}
+function sendEmail(id){const e=document.getElementById(id)?.value.trim();if(e)window.open('mailto:'+encodeURIComponent(e));}
+function sortClients(){data.clients.sort((a,b)=>{function gl(n){if(n.includes(','))return n.split(',')[0].trim().toLowerCase();const p=n.trim().split(/\s+/);return p.length>1?p[p.length-1].toLowerCase():p[0].toLowerCase();}return gl(a.name||'').localeCompare(gl(b.name||''));});}
+function populateSubs(){const n=new Set();data.clients.forEach(c=>{c.tasks.forEach(t=>{if(t.subcontractors)(t.subcontractors||[]).forEach(s=>{if(s.name)n.add(s.name);});if(t.subName)n.add(t.subName);});});document.getElementById('subcontractorList').innerHTML=Array.from(n).sort().map(x=>`<option value="${esc(x)}">`).join('');}
+
+function render(){renderSidebar();renderMain();}
+function renderSidebar(){document.getElementById('clientCount').textContent=data.clients.length+' client'+(data.clients.length!==1?'s':'');const l=document.getElementById('clientList');l.innerHTML='';data.clients.forEach(c=>{const s=stats(c),a=c.id===activeClientId,d=document.createElement('div');d.className='client-card'+(a?' active':'');d.style.borderLeft='4px solid '+c.color;d.onclick=()=>{activeClientId=c.id;filterStatus='All';filterPriority='All';searchTerm='';viewTab='tasks';render();};let ch=`<span class="stat-chip">${s.total} task${s.total!==1?'s':''}</span>`;if(c.isHmp)ch+=`<span class="stat-chip hmp">HMP</span>`;if(s.done)ch+=`<span class="stat-chip done">${s.done} done</span>`;if(s.inProgress)ch+=`<span class="stat-chip active-tasks">${s.inProgress} active</span>`;d.innerHTML=`<div class="client-card-top"><span class="client-name">${esc(c.name)}</span><button class="delete-btn" onclick="event.stopPropagation();deleteClient(${c.id})">&times;</button></div><div class="client-stats">${ch}</div>`;l.appendChild(d);});}
+
+function renderMain(){
+  const p=document.getElementById('mainPanel'),c=getClient(activeClientId);
+  if(!c){p.innerHTML=`<div class="empty-state"><div class="empty-icon">👥</div><p class="empty-text">Add a client to get started.</p></div>`;return;}
+  const s=stats(c),reg=c.tasks.filter(t=>!t.hmpTask),hmp=c.tasks.filter(t=>t.hmpTask);
+  let h=`<div class="main-header"><div><h2 class="main-title"><span class="color-indicator" style="background:${c.color}"></span>${esc(c.name)}${c.isHmp?' <span class="hmp-badge">HMP</span>':''}</h2><div class="main-subtitle">${s.total} tasks · ${s.done} done · ${s.inProgress} active</div></div><div style="display:flex;gap:8px;align-items:center"><button class="edit-client-btn" onclick="openEditClient()">✎ Edit</button><button class="add-task-btn" onclick="openAddTask(false)">+ Add Task</button></div></div><div class="client-info-bar"><div class="client-info-item"><span class="client-info-icon">📍</span><span class="client-info-label">Address</span><span class="${c.address?'client-info-value':'client-info-none'}">${c.address?esc(c.address):'Not set'}</span></div><div class="client-info-item"><span class="client-info-icon">📞</span><span class="client-info-label">Her</span><span class="${c.herPhone?'client-info-value':'client-info-none'}">${c.herPhone?esc(c.herPhone):'Not set'}</span></div><div class="client-info-item"><span class="client-info-icon">📞</span><span class="client-info-label">His</span><span class="${c.hisPhone?'client-info-value':'client-info-none'}">${c.hisPhone?esc(c.hisPhone):'Not set'}</span></div><div class="client-info-item"><span class="client-info-icon">🔑</span><span class="client-info-label">Gate</span><span class="${c.gateCode?'client-info-value':'client-info-none'}">${c.gateCode?esc(c.gateCode):'Not set'}</span></div>${c.email1?`<div class="client-info-item"><span class="client-info-icon">✉</span><span class="client-info-value">${esc(c.email1)}</span><a href="mailto:${esc(c.email1)}" class="email-info-btn">Send</a></div>`:''}${c.email2?`<div class="client-info-item"><span class="client-info-icon">✉</span><span class="client-info-value">${esc(c.email2)}</span><a href="mailto:${esc(c.email2)}" class="email-info-btn">Send</a></div>`:''}</div>`;
+  let tabs='';if(c.isHmp){const hd=hmp.filter(t=>t.status==='Done').length;tabs=`<div class="section-tabs"><button class="section-tab${viewTab==='tasks'?' active':''}" onclick="viewTab='tasks';render()">Tasks <span class="tab-count">(${reg.length})</span></button><button class="section-tab hmp-tab${viewTab==='hmp'?' active':''}" onclick="viewTab='hmp';render()">HMP <span class="tab-count">(${hd}/${hmp.length})</span></button></div>`;}else viewTab='tasks';
+  let body='';
+  if(viewTab==='tasks'){let f=reg.filter(t=>{if(filterStatus!=='All'&&t.status!==filterStatus)return false;if(filterPriority!=='All'&&t.priority!==filterPriority)return false;if(searchTerm&&!t.title.toLowerCase().includes(searchTerm.toLowerCase()))return false;return true;});const po={high:0,medium:1,low:2},so={'To Do':0,'In Progress':1,'Done':2};f.sort((a,b)=>po[a.priority]!==po[b.priority]?po[a.priority]-po[b.priority]:so[a.status]-so[b.status]);function ch(l,v,ty){return `<button class="filter-chip${(ty==='status'?filterStatus:filterPriority)===v?' active':''}" onclick="${ty==='status'?'filterStatus':'filterPriority'}='${v}';render()">${l}</button>`;}let sc=ch('All','All','status')+STATUS_LIST.map(x=>ch(x,x,'status')).join(''),pc=ch('All','All','priority')+['high','medium','low'].map(x=>ch(PRIORITY[x].label,x,'priority')).join('');let th='';if(!f.length)th=`<div class="empty-state"><div class="empty-icon">📋</div><p class="empty-text">${reg.length?'No match.':'No tasks yet.'}</p></div>`;else f.forEach(t=>{th+=renderRow(t);});body=`<div class="filter-bar"><input class="search-input" placeholder="Search..." value="${esc(searchTerm)}" oninput="searchTerm=this.value;render()"><div class="filter-group">${sc}</div><div class="filter-group">${pc}</div></div><div class="task-list">${th}</div>`;}
+  else{let f=hmp.filter(t=>{if(filterStatus!=='All'&&t.scheduledMonth!=='All Months'&&t.status!==filterStatus)return false;if(searchTerm&&!t.title.toLowerCase().includes(searchTerm.toLowerCase()))return false;return true;});let hf=`<button class="filter-chip${filterStatus==='All'?' active':''}" onclick="filterStatus='All';render()">All</button><button class="filter-chip${filterStatus==='To Do'?' active':''}" onclick="filterStatus='To Do';render()">To Do</button><button class="filter-chip${filterStatus==='Done'?' active':''}" onclick="filterStatus='Done';render()">Done</button>`;const bm={},nm=[];f.forEach(t=>{if(t.scheduledMonth==='All Months')MONTHS.forEach(m=>{if(!bm[m])bm[m]=[];bm[m].push(t);});else if(t.scheduledMonth){if(!bm[t.scheduledMonth])bm[t.scheduledMonth]=[];bm[t.scheduledMonth].push(t);}else nm.push(t);});function gms(t,m){return t.scheduledMonth==='All Months'&&t.monthlyStatus?t.monthlyStatus[m]||'To Do':t.status;}let hh='';MONTHS.forEach(m=>{if(bm[m]&&bm[m].length){const mt=bm[m].filter(t=>filterStatus==='All'||gms(t,m)===filterStatus);if(!mt.length&&filterStatus!=='All')return;const dn=bm[m].filter(t=>gms(t,m)==='Done').length;hh+=`<div class="month-group"><div class="month-group-header">${m}<span class="month-count">${dn}/${bm[m].length} done</span><div class="month-line"></div></div>`;mt.forEach(t=>hh+=renderRow(t,m));hh+=`</div>`;}});if(nm.length){hh+=`<div class="month-group"><div class="month-group-header">Unscheduled<span class="month-count">${nm.length}</span><div class="month-line"></div></div>`;nm.forEach(t=>hh+=renderRow(t));hh+=`</div>`;}if(!f.length)hh=`<div class="empty-state"><div class="empty-icon">🔧</div><p class="empty-text">${hmp.length?'No match.':'No HMP tasks.'}</p></div>`;body=`<div class="filter-bar"><input class="search-input" placeholder="Search HMP..." value="${esc(searchTerm)}" oninput="searchTerm=this.value;render()"><div class="filter-group">${hf}</div><button class="add-hmp-task-btn" onclick="openAddTask(true)">+ HMP Task</button></div><div class="task-list">${hh}</div>`;}
+  p.innerHTML=h+tabs+body;
 }
 
-function save() {
-  saving = true;
-  const dot = document.getElementById('syncDot');
-  const txt = document.getElementById('syncText');
-  dot.className = 'sync-dot syncing';
-  txt.textContent = 'Saving...';
-  dataRef.set(data).then(() => {
-    dot.className = 'sync-dot';
-    txt.textContent = 'Synced live';
-    saving = false;
-  }).catch(err => {
-    console.error('Save failed:', err);
-    dot.className = 'sync-dot offline';
-    txt.textContent = 'Save error';
-    saving = false;
-  });
+function renderRow(t,fm){
+  const pr=PRIORITY[t.priority||'medium'];let es=t.status;if(fm&&t.scheduledMonth==='All Months'&&t.monthlyStatus)es=t.monthlyStatus[fm]||'To Do';
+  const dn=es==='Done',sb=dn?'#E8F5E8':es==='In Progress'?'#FFF4E0':'#F0F0F5',sc=dn?'#2E7D46':es==='In Progress'?'#B8860B':'#666';
+  let mt='';if(t.scheduledMonth&&!fm)mt+=`<span class="month-badge">${t.scheduledMonth}</span>`;if(t.hmpSchedule)mt+=`<span class="hmp-month-tag">${t.hmpSchedule}</span>`;mt+=`<span class="badge" style="background:${sb};color:${sc}">${es}</span>`;if(!t.hmpTask)mt+=`<span class="badge" style="background:${pr.bg};color:${pr.border};font-weight:600">${pr.label}</span>`;
+  const bc=t.hmpTask?'#4338CA':pr.border,ta=fm?`${t.id},'${fm}'`:t.id;
+  let sl='';const subs=t.subcontractors||[];if(subs.length)subs.forEach(s=>{if(s.name)sl+=`<div class="sub-info-line">👷 <span class="sub-name">${esc(s.name)}</span>${s.date?`<span class="sub-sep">·</span>${formatDate(s.date)}`:''}${s.time?`<span class="sub-sep">·</span>🕐 ${formatTime(s.time)}`:''}${s.status?`<span class="sub-sep">·</span>${subTag(s.status)}`:''}</div>`;});else if(t.subName)sl=`<div class="sub-info-line">👷 <span class="sub-name">${esc(t.subName)}</span>${t.subDate?`<span class="sub-sep">·</span>${formatDate(t.subDate)}`:''}${t.subStatus?`<span class="sub-sep">·</span>${subTag(t.subStatus)}`:''}</div>`;
+  return `<div class="task-row${dn?' done':''}" style="border-left:3px solid ${bc}" onclick="openEditTask(${t.id})"><div class="task-main"><div class="task-title-row"><input type="checkbox" ${dn?'checked':''} onclick="event.stopPropagation();toggleDone(${ta})"><span class="task-title${dn?' struck':''}">${esc(t.title)}</span></div>${sl}${t.notes?`<p class="task-notes">${esc(t.notes)}</p>`:''}${t.images&&t.images.length?`<div class="task-images">${t.images.slice(0,4).map((img,i)=>`<div class="task-thumb" onclick="event.stopPropagation();openLB(${t.id},${i})"><img src="${img}"></div>`).join('')}${t.images.length>4?`<span class="img-count-badge">+${t.images.length-4}</span>`:''}</div>`:''}</div><div class="task-meta">${mt}</div></div>`;
 }
 
-// Helpers
-function getClient(id) { return data.clients.find(c => c.id === id); }
-function stats(client) {
-  const t = client.tasks.length;
-  const d = client.tasks.filter(x => x.status === 'Done').length;
-  const p = client.tasks.filter(x => x.status === 'In Progress').length;
-  return { total: t, done: d, inProgress: p, todo: t - d - p };
-}
+function toggleAddClient(show){const a=document.getElementById('addClientArea');if(show){selectedColor=COLORS[Math.floor(Math.random()*COLORS.length)];a.innerHTML=`<div class="add-client-form"><input class="sidebar-input" id="newClientName" placeholder="Client name (Last, First)" onkeydown="if(event.key==='Escape')toggleAddClient(false)"><input class="sidebar-input" id="newClientAddress" placeholder="Address"><input class="sidebar-input" id="newClientHerPhone" placeholder="Her Phone"><input class="sidebar-input" id="newClientHisPhone" placeholder="His Phone"><input class="sidebar-input" id="newClientGate" placeholder="Gate code"><div class="hmp-check-row"><input type="checkbox" id="newClientHmp"><label for="newClientHmp">HMP Client</label></div><div class="color-row">${COLORS.map(c=>`<div class="color-dot" style="background:${c}${selectedColor===c?';outline:2px solid '+c+';outline-offset:2px':''}" onclick="selectedColor='${c}';toggleAddClient(true)"></div>`).join('')}</div><div class="form-actions"><button class="cancel-btn" onclick="toggleAddClient(false)">Cancel</button><button class="primary-btn" onclick="addClient()">Add</button></div></div>`;setTimeout(()=>document.getElementById('newClientName')?.focus(),50);}else a.innerHTML=`<button class="add-client-btn" onclick="toggleAddClient(true)">+ New Client</button>`;}
+function addClient(){const n=document.getElementById('newClientName')?.value.trim();if(!n)return;const tasks=[];const isH=document.getElementById('newClientHmp')?.checked||false;if(isH)HMP_MONTHLY_TASKS.forEach(h=>{tasks.push({id:data.nextTaskId++,title:h.title,status:'To Do',priority:h.priority,notes:'Schedule: '+h.month,hmpTask:true,hmpSchedule:h.month,createdAt:Date.now()});});data.clients.push({id:data.nextClientId++,name:n,color:selectedColor,address:document.getElementById('newClientAddress')?.value.trim()||'',herPhone:document.getElementById('newClientHerPhone')?.value.trim()||'',hisPhone:document.getElementById('newClientHisPhone')?.value.trim()||'',gateCode:document.getElementById('newClientGate')?.value.trim()||'',email1:'',email2:'',isHmp:isH,tasks});sortClients();activeClientId=data.clients.find(c=>c.name===n).id;save();toggleAddClient(false);render();}
+function deleteClient(id){if(!confirm('Delete this client?'))return;data.clients=data.clients.filter(c=>c.id!==id);if(activeClientId===id)activeClientId=data.clients.length?data.clients[0].id:null;save();render();}
 
-// Render
-function render() {
-  renderSidebar();
-  renderMain();
-}
+function configureHmpModal(h){const s=document.getElementById('taskStatusSelect'),pf=document.getElementById('taskPriorityField'),hr=document.getElementById('taskHmpRow');if(h){const v=s.value;s.innerHTML='<option value="To Do">To Do</option><option value="Done">Done</option>';s.value=v==='Done'?'Done':'To Do';pf.style.display='none';hr.style.display='flex';}else{const v=s.value;s.innerHTML='<option value="To Do">To Do</option><option value="In Progress">In Progress</option><option value="Done">Done</option>';s.value=['To Do','In Progress','Done'].includes(v)?v:'To Do';pf.style.display='';hr.style.display='none';}}
+function toggleHmpFields(){configureHmpModal(document.getElementById('taskHmpCheck').checked);}
 
-function renderSidebar() {
-  document.getElementById('clientCount').textContent = data.clients.length + ' client' + (data.clients.length !== 1 ? 's' : '');
-  const list = document.getElementById('clientList');
-  list.innerHTML = '';
-  data.clients.forEach(c => {
-    const s = stats(c);
-    const active = c.id === activeClientId;
-    const div = document.createElement('div');
-    div.className = 'client-card' + (active ? ' active' : '');
-    div.style.borderLeft = '4px solid ' + c.color;
-    div.onclick = () => { activeClientId = c.id; filterStatus = 'All'; filterPriority = 'All'; searchTerm = ''; viewTab = 'tasks'; render(); };
-    let chips = `<span class="stat-chip">${s.total} task${s.total!==1?'s':''}</span>`;
-    if (c.isHmp) chips += `<span class="stat-chip hmp">HMP</span>`;
-    if (s.done > 0) chips += `<span class="stat-chip done">${s.done} done</span>`;
-    if (s.inProgress > 0) chips += `<span class="stat-chip active-tasks">${s.inProgress} active</span>`;
-    div.innerHTML = `
-      <div class="client-card-top">
-        <span class="client-name">${esc(c.name)}</span>
-        <button class="delete-btn" title="Delete client" onclick="event.stopPropagation(); deleteClient(${c.id})">&times;</button>
-      </div>
-      <div class="client-stats">${chips}</div>`;
-    list.appendChild(div);
-  });
-}
+function openAddTask(asH){editingTaskId=null;taskImages=[];taskSubSections=[];document.getElementById('taskModalTitle').textContent=asH?'New HMP Task':'New Task';document.getElementById('taskTitleInput').value='';document.getElementById('taskStatusSelect').value='To Do';document.getElementById('taskPrioritySelect').value='medium';document.getElementById('taskNotesInput').value='';document.getElementById('taskMonthSelect').value='';document.getElementById('taskScheduleSelect').value='';const ih=getClient(activeClientId)?.isHmp||false;document.getElementById('taskHmpCheckRow').style.display=ih?'flex':'none';document.getElementById('taskHmpCheck').checked=asH||false;configureHmpModal(asH||false);populateSubs();renderSubs();renderImgPrev();document.getElementById('taskModalActions').innerHTML=`<button class="cancel-btn" onclick="closeTaskModal()">Cancel</button><button class="primary-btn" onclick="saveTask()">Add Task</button>`;document.getElementById('taskModal').style.display='flex';setTimeout(()=>document.getElementById('taskTitleInput').focus(),50);}
 
-function renderMain() {
-  const panel = document.getElementById('mainPanel');
-  const client = getClient(activeClientId);
-  if (!client) {
-    panel.innerHTML = `<div class="empty-state"><div class="empty-icon">👥</div><p class="empty-text">Add a client in the sidebar to start organizing tasks.</p></div>`;
-    return;
-  }
-  const s = stats(client);
-  const regularTasks = client.tasks.filter(t => !t.hmpTask);
-  const hmpTasks = client.tasks.filter(t => t.hmpTask);
+function openEditTask(tid){const c=getClient(activeClientId),t=c.tasks.find(x=>x.id===tid);if(!t)return;editingTaskId=tid;taskImages=t.images?[...t.images]:[];taskSubSections=t.subcontractors&&t.subcontractors.length?t.subcontractors.map(s=>({...s})):t.subName?[{name:t.subName,status:t.subStatus||'',date:t.subDate||'',time:t.subTime||''}]:[];const ih=c.isHmp||false,isH=t.hmpTask||false;document.getElementById('taskModalTitle').textContent=isH?'Edit HMP Task':'Edit Task';document.getElementById('taskTitleInput').value=t.title;document.getElementById('taskPrioritySelect').value=t.priority;document.getElementById('taskNotesInput').value=t.notes||'';document.getElementById('taskMonthSelect').value=t.scheduledMonth||'';document.getElementById('taskScheduleSelect').value=t.hmpSchedule||'';document.getElementById('taskHmpCheckRow').style.display=ih?'flex':'none';document.getElementById('taskHmpCheck').checked=isH;configureHmpModal(isH);document.getElementById('taskStatusSelect').value=t.status;populateSubs();renderSubs();renderImgPrev();document.getElementById('taskModalActions').innerHTML=`<button class="cancel-btn danger-text" onclick="deleteTask(${tid})">Delete</button><button class="primary-btn" onclick="saveTask()">Save</button>`;document.getElementById('taskModal').style.display='flex';}
 
-  // Build header
-  let headerHtml = `
-    <div class="main-header">
-      <div>
-        <h2 class="main-title"><span class="color-indicator" style="background:${client.color}"></span>${esc(client.name)}${client.isHmp ? ' <span class="hmp-badge">HMP Client</span>' : ''}</h2>
-        <div class="main-subtitle">${s.total} tasks · ${s.done} complete · ${s.inProgress} in progress</div>
-      </div>
-      <div style="display:flex;gap:8px;align-items:center">
-        <button class="edit-client-btn" onclick="openEditClient()">✎ Edit Info</button>
-        <button class="add-task-btn" onclick="openAddTask(false)">+ Add Task</button>
-      </div>
-    </div>
-    <div class="client-info-bar">
-      <div class="client-info-item">
-        <span class="client-info-icon">📍</span>
-        <span class="client-info-label">Address</span>
-        <span class="${client.address ? 'client-info-value' : 'client-info-none'}">${client.address ? esc(client.address) : 'Not set'}</span>
-      </div>
-      <div class="client-info-item">
-        <span class="client-info-icon">📞</span>
-        <span class="client-info-label">Phone</span>
-        <span class="${client.phone ? 'client-info-value' : 'client-info-none'}">${client.phone ? esc(client.phone) : 'Not set'}</span>
-      </div>
-      <div class="client-info-item">
-        <span class="client-info-icon">🔑</span>
-        <span class="client-info-label">Gate</span>
-        <span class="${client.gateCode ? 'client-info-value' : 'client-info-none'}">${client.gateCode ? esc(client.gateCode) : 'Not set'}</span>
-      </div>
-    </div>`;
+function closeTaskModal(){document.getElementById('taskModal').style.display='none';document.getElementById('taskImageInput').value='';editingTaskId=null;taskImages=[];taskSubSections=[];}
 
-  // Tabs for HMP clients
-  let tabsHtml = '';
-  if (client.isHmp) {
-    const hmpDone = hmpTasks.filter(t => t.status === 'Done').length;
-    tabsHtml = `
-    <div class="section-tabs">
-      <button class="section-tab${viewTab==='tasks'?' active':''}" onclick="viewTab='tasks';render()">Tasks<span class="tab-count">(${regularTasks.length})</span></button>
-      <button class="section-tab hmp-tab${viewTab==='hmp'?' active':''}" onclick="viewTab='hmp';render()">HMP Maintenance<span class="tab-count">(${hmpDone}/${hmpTasks.length} done)</span></button>
-    </div>`;
-  } else {
-    viewTab = 'tasks';
-  }
+function saveTask(){const title=document.getElementById('taskTitleInput').value.trim();if(!title)return;const status=document.getElementById('taskStatusSelect').value,isH=document.getElementById('taskHmpCheck').checked,priority=isH?'medium':document.getElementById('taskPrioritySelect').value,notes=document.getElementById('taskNotesInput').value.trim(),sm=document.getElementById('taskMonthSelect').value||'',hs=document.getElementById('taskScheduleSelect').value||'',subs=gatherSubs(),c=getClient(activeClientId);if(editingTaskId){const t=c.tasks.find(x=>x.id===editingTaskId);if(t){const wa=t.scheduledMonth==='All Months',na=sm==='All Months';t.title=title;t.status=status;t.priority=priority;t.notes=notes;t.scheduledMonth=sm;t.hmpSchedule=hs;t.hmpTask=isH;t.subcontractors=subs;t.subName=subs.length?subs[0].name:'';t.subStatus=subs.length?subs[0].status:'';t.subDate=subs.length?subs[0].date:'';t.subTime=subs.length?subs[0].time:'';t.images=[...taskImages];if(na&&!wa){t.monthlyStatus={};MONTHS.forEach(m=>{t.monthlyStatus[m]=status;});}if(!na&&wa)delete t.monthlyStatus;}}else{const nt={id:data.nextTaskId++,title,status,priority,notes,scheduledMonth:sm,hmpSchedule:hs,hmpTask:isH,subcontractors:subs,subName:subs.length?subs[0].name:'',subStatus:subs.length?subs[0].status:'',subDate:subs.length?subs[0].date:'',subTime:subs.length?subs[0].time:'',images:[...taskImages],createdAt:Date.now()};if(sm==='All Months'){nt.monthlyStatus={};MONTHS.forEach(m=>{nt.monthlyStatus[m]=status;});}c.tasks.push(nt);}save();closeTaskModal();render();}
 
-  let bodyHtml = '';
+function deleteTask(id){getClient(activeClientId).tasks=getClient(activeClientId).tasks.filter(t=>t.id!==id);save();closeTaskModal();render();}
+function toggleDone(tid,fm){const c=getClient(activeClientId),t=c.tasks.find(x=>x.id===tid);if(!t)return;if(fm&&t.scheduledMonth==='All Months'&&t.monthlyStatus){t.monthlyStatus[fm]=t.monthlyStatus[fm]==='Done'?'To Do':'Done';t.status=MONTHS.every(m=>t.monthlyStatus[m]==='Done')?'Done':'To Do';}else t.status=t.status==='Done'?'To Do':'Done';save();render();}
 
-  if (viewTab === 'tasks') {
-    // Regular tasks view
-    let filtered = regularTasks.filter(t => {
-      if (filterStatus !== 'All' && t.status !== filterStatus) return false;
-      if (filterPriority !== 'All' && t.priority !== filterPriority) return false;
-      if (searchTerm && !t.title.toLowerCase().includes(searchTerm.toLowerCase())) return false;
-      return true;
-    });
-    const pOrder = { high: 0, medium: 1, low: 2 };
-    const sOrder = { 'To Do': 0, 'In Progress': 1, 'Done': 2 };
-    filtered.sort((a, b) => {
-      if (pOrder[a.priority] !== pOrder[b.priority]) return pOrder[a.priority] - pOrder[b.priority];
-      return sOrder[a.status] - sOrder[b.status];
-    });
+function addSubSection(){taskSubSections.push({name:'',status:'',date:'',time:''});renderSubs();}
+function removeSubSection(i){taskSubSections.splice(i,1);renderSubs();}
+function renderSubs(){const c=document.getElementById('subcontractorsContainer');if(!c)return;if(!taskSubSections.length){c.innerHTML='';return;}c.innerHTML=taskSubSections.map((s,i)=>`<div class="sub-section"><div class="sub-section-title"><span>👷 Subcontractor${taskSubSections.length>1?' '+(i+1):''}</span><button class="remove-sub-btn" onclick="removeSubSection(${i})">✕ Remove</button></div><div class="sub-row"><div class="sub-field" style="flex:2"><label>Name</label><input list="subcontractorList" class="sn" data-i="${i}" value="${esc(s.name)}" placeholder="Name" onchange="taskSubSections[${i}].name=this.value"></div><div class="sub-field"><label>Status</label><select class="ss" data-i="${i}" onchange="taskSubSections[${i}].status=this.value"><option value=""${!s.status?' selected':''}>— None —</option><option value="Scheduled"${s.status==='Scheduled'?' selected':''}>Scheduled</option><option value="Confirmed"${s.status==='Confirmed'?' selected':''}>Confirmed</option><option value="In Progress"${s.status==='In Progress'?' selected':''}>In Progress</option><option value="Completed"${s.status==='Completed'?' selected':''}>Completed</option><option value="Cancelled"${s.status==='Cancelled'?' selected':''}>Cancelled</option><option value="Pending"${s.status==='Pending'?' selected':''}>Pending</option></select></div></div><div class="sub-row"><div class="sub-field"><label>Date</label><input type="date" class="sd" data-i="${i}" value="${s.date||''}" onchange="taskSubSections[${i}].date=this.value"></div><div class="sub-field"><label>Time</label><input type="time" class="st" data-i="${i}" value="${s.time||''}" onchange="taskSubSections[${i}].time=this.value"></div></div></div>`).join('');}
+function gatherSubs(){const c=document.getElementById('subcontractorsContainer');if(!c)return taskSubSections.filter(s=>s.name.trim());c.querySelectorAll('.sub-section').forEach((sec,i)=>{if(taskSubSections[i]){const n=sec.querySelector('.sn'),s=sec.querySelector('.ss'),d=sec.querySelector('.sd'),t=sec.querySelector('.st');if(n)taskSubSections[i].name=n.value.trim();if(s)taskSubSections[i].status=s.value;if(d)taskSubSections[i].date=d.value;if(t)taskSubSections[i].time=t.value;}});return taskSubSections.filter(s=>s.name);}
 
-    function chip(label, value, type) {
-      const cur = type === 'status' ? filterStatus : filterPriority;
-      return `<button class="filter-chip${cur === value ? ' active' : ''}" onclick="${type === 'status' ? 'filterStatus' : 'filterPriority'}='${value}';render()">${label}</button>`;
-    }
-    let statusChips = chip('All','All','status') + STATUS_LIST.map(s => chip(s,s,'status')).join('');
-    let priChips = chip('All','All','priority') + ['high','medium','low'].map(p => chip(PRIORITY[p].label,p,'priority')).join('');
+function openEditClient(){const c=getClient(activeClientId);if(!c)return;editingClientColor=c.color;document.getElementById('editClientName').value=c.name;document.getElementById('editClientAddress').value=c.address||'';document.getElementById('editClientHerPhone').value=c.herPhone||c.phone||'';document.getElementById('editClientHisPhone').value=c.hisPhone||'';document.getElementById('editClientGate').value=c.gateCode||'';document.getElementById('editClientEmail1').value=c.email1||'';document.getElementById('editClientEmail2').value=c.email2||'';document.getElementById('editClientHmp').checked=c.isHmp||false;renderEC();document.getElementById('clientModal').style.display='flex';}
+function renderEC(){document.getElementById('editClientColors').innerHTML=COLORS.map(c=>`<div class="color-dot" style="background:${c}${editingClientColor===c?';outline:2px solid '+c+';outline-offset:2px':''}" onclick="editingClientColor='${c}';renderEC()"></div>`).join('');}
+function closeClientModal(){document.getElementById('clientModal').style.display='none';}
+function saveClientEdit(){const n=document.getElementById('editClientName').value.trim();if(!n)return;const c=getClient(activeClientId);if(!c)return;const was=c.isHmp||false,now=document.getElementById('editClientHmp').checked;c.name=n;c.address=document.getElementById('editClientAddress').value.trim();c.herPhone=document.getElementById('editClientHerPhone').value.trim();c.hisPhone=document.getElementById('editClientHisPhone').value.trim();c.gateCode=document.getElementById('editClientGate').value.trim();c.email1=document.getElementById('editClientEmail1').value.trim();c.email2=document.getElementById('editClientEmail2').value.trim();c.color=editingClientColor;c.isHmp=now;if(now&&!was){const ex=new Set(c.tasks.map(t=>t.title));HMP_MONTHLY_TASKS.forEach(h=>{if(!ex.has(h.title))c.tasks.push({id:data.nextTaskId++,title:h.title,status:'To Do',priority:h.priority,notes:'Schedule: '+h.month,hmpTask:true,hmpSchedule:h.month,createdAt:Date.now()});});}if(!now&&was&&confirm('Remove incomplete HMP tasks?'))c.tasks=c.tasks.filter(t=>!t.hmpTask||t.status==='Done');sortClients();save();closeClientModal();render();}
 
-    let taskHtml = '';
-    if (filtered.length === 0) {
-      const msg = regularTasks.length === 0 ? 'No tasks yet — add one to get started.' : 'No tasks match your filters.';
-      taskHtml = `<div class="empty-state"><div class="empty-icon">📋</div><p class="empty-text">${msg}</p></div>`;
-    } else {
-      filtered.forEach(t => { taskHtml += renderTaskRow(t); });
-    }
-
-    bodyHtml = `
-    <div class="filter-bar">
-      <input class="search-input" placeholder="Search tasks..." value="${esc(searchTerm)}" oninput="searchTerm=this.value;render()">
-      <div class="filter-group">${statusChips}</div>
-      <div class="filter-group">${priChips}</div>
-    </div>
-    <div class="task-list">${taskHtml}</div>`;
-
-  } else {
-    // HMP tab — group by month
-    let filtered = hmpTasks.filter(t => {
-      // Skip status filter for All Months tasks — they're filtered per-month in the group rendering
-      if (filterStatus !== 'All' && t.scheduledMonth !== 'All Months' && t.status !== filterStatus) return false;
-      if (searchTerm && !t.title.toLowerCase().includes(searchTerm.toLowerCase())) return false;
-      return true;
-    });
-
-    function hmpChip(label, value) {
-      return `<button class="filter-chip${filterStatus === value ? ' active' : ''}" onclick="filterStatus='${value}';render()">${label}</button>`;
-    }
-    let hmpFilters = hmpChip('All','All') + hmpChip('To Do','To Do') + hmpChip('Done','Done');
-
-    // Group by month
-    const byMonth = {};
-    const noMonth = [];
-    filtered.forEach(t => {
-      if (t.scheduledMonth === 'All Months') {
-        // Show in every month
-        MONTHS.forEach(m => {
-          if (!byMonth[m]) byMonth[m] = [];
-          byMonth[m].push(t);
-        });
-      } else if (t.scheduledMonth) {
-        if (!byMonth[t.scheduledMonth]) byMonth[t.scheduledMonth] = [];
-        byMonth[t.scheduledMonth].push(t);
-      } else {
-        noMonth.push(t);
-      }
-    });
-
-    let hmpHtml = '';
-
-    // Helper: get effective status of a task for a specific month
-    function getMonthStatus(t, month) {
-      if (t.scheduledMonth === 'All Months' && t.monthlyStatus) {
-        return t.monthlyStatus[month] || 'To Do';
-      }
-      return t.status;
-    }
-
-    // Render month groups in calendar order
-    MONTHS.forEach(m => {
-      if (byMonth[m] && byMonth[m].length > 0) {
-        // Filter by status using per-month status
-        const monthTasks = byMonth[m].filter(t => {
-          if (filterStatus !== 'All' && getMonthStatus(t, m) !== filterStatus) return false;
-          return true;
-        });
-        if (monthTasks.length === 0 && filterStatus !== 'All') return;
-        const done = byMonth[m].filter(t => getMonthStatus(t, m) === 'Done').length;
-        hmpHtml += `<div class="month-group">
-          <div class="month-group-header">${m}<span class="month-count">${done}/${byMonth[m].length} done</span><div class="month-line"></div></div>`;
-        monthTasks.forEach(t => { hmpHtml += renderTaskRow(t, m); });
-        hmpHtml += `</div>`;
-      }
-    });
-
-    // Unscheduled tasks
-    if (noMonth.length > 0) {
-      hmpHtml += `<div class="month-group">
-        <div class="month-group-header">Unscheduled<span class="month-count">${noMonth.length} task${noMonth.length!==1?'s':''}</span><div class="month-line"></div></div>`;
-      noMonth.forEach(t => { hmpHtml += renderTaskRow(t); });
-      hmpHtml += `</div>`;
-    }
-
-    if (filtered.length === 0) {
-      hmpHtml = `<div class="empty-state"><div class="empty-icon">🔧</div><p class="empty-text">${hmpTasks.length === 0 ? 'No HMP tasks yet — add one below.' : 'No HMP tasks match your filters.'}</p></div>`;
-    }
-
-    bodyHtml = `
-    <div class="filter-bar">
-      <input class="search-input" placeholder="Search HMP tasks..." value="${esc(searchTerm)}" oninput="searchTerm=this.value;render()">
-      <div class="filter-group">${hmpFilters}</div>
-      <button class="add-hmp-task-btn" onclick="openAddTask(true)">+ Add HMP Task</button>
-    </div>
-    <div class="task-list">${hmpHtml}</div>`;
-  }
-
-  panel.innerHTML = headerHtml + tabsHtml + bodyHtml;
-}
-
-function renderTaskRow(t, forMonth) {
-  const pri = PRIORITY[t.priority || 'medium'];
-  // For "All Months" tasks in a specific month, use that month's status
-  let effectiveStatus = t.status;
-  if (forMonth && t.scheduledMonth === 'All Months' && t.monthlyStatus) {
-    effectiveStatus = t.monthlyStatus[forMonth] || 'To Do';
-  }
-  const isDone = effectiveStatus === 'Done';
-  const sBg = isDone ? '#E8F5E8' : effectiveStatus === 'In Progress' ? '#FFF4E0' : '#F0F0F5';
-  const sColor = isDone ? '#2E7D46' : effectiveStatus === 'In Progress' ? '#B8860B' : '#666';
-  let metaTags = '';
-  if (t.scheduledMonth && !forMonth) metaTags += `<span class="month-badge">${t.scheduledMonth}</span>`;
-  if (t.hmpSchedule) metaTags += `<span class="hmp-month-tag">${t.hmpSchedule}</span>`;
-  if (t.vendor) metaTags += `<span class="vendor-tag">${esc(t.vendor)}</span>`;
-  metaTags += `<span class="badge" style="background:${sBg};color:${sColor}">${effectiveStatus}</span>`;
-  if (!t.hmpTask) {
-    metaTags += `<span class="badge" style="background:${pri.bg};color:${pri.border};font-weight:600">${pri.label}</span>`;
-  }
-  const borderColor = t.hmpTask ? '#4338CA' : pri.border;
-  const toggleArg = forMonth ? `${t.id}, '${forMonth}'` : `${t.id}`;
-  return `
-    <div class="task-row${isDone ? ' done' : ''}" style="border-left:3px solid ${borderColor}" onclick="openEditTask(${t.id})">
-      <div class="task-main">
-        <div class="task-title-row">
-          <input type="checkbox" ${isDone ? 'checked' : ''} onclick="event.stopPropagation(); toggleDone(${toggleArg})">
-          <span class="task-title${isDone ? ' struck' : ''}">${esc(t.title)}</span>
-        </div>
-        ${t.vendor ? `<div class="vendor-line"><span class="vendor-icon">🔧</span>${esc(t.vendor)}</div>` : ''}
-        ${t.subName ? `<div class="sub-info-line">👷 <span class="sub-name">${esc(t.subName)}</span>${t.subDate ? `<span class="sub-sep">·</span>${formatDate(t.subDate)}` : ''}${t.subStatus ? `<span class="sub-sep">·</span>${subStatusTag(t.subStatus)}` : ''}</div>` : ''}
-        ${t.notes ? `<p class="task-notes">${esc(t.notes)}</p>` : ''}
-        ${t.images && t.images.length > 0 ? `<div class="task-images">${t.images.slice(0, 4).map((img, i) => `<div class="task-thumb" onclick="event.stopPropagation(); openLightbox(${t.id}, ${i})"><img src="${img}"></div>`).join('')}${t.images.length > 4 ? `<span class="img-count-badge">+${t.images.length - 4} more</span>` : ''}</div>` : ''}
-      </div>
-      <div class="task-meta">${metaTags}</div>
-    </div>`;
-}
-
-// Client actions
-function toggleAddClient(show) {
-  const area = document.getElementById('addClientArea');
-  if (show) {
-    selectedColor = COLORS[Math.floor(Math.random() * COLORS.length)];
-    area.innerHTML = `
-      <div class="add-client-form">
-        <input class="sidebar-input" id="newClientName" placeholder="Client name" onkeydown="if(event.key==='Escape')toggleAddClient(false);">
-        <input class="sidebar-input" id="newClientAddress" placeholder="Address (optional)">
-        <input class="sidebar-input" id="newClientPhone" placeholder="Phone (optional)">
-        <input class="sidebar-input" id="newClientGate" placeholder="Gate code (optional)">
-        <div class="hmp-check-row">
-          <input type="checkbox" id="newClientHmp">
-          <label for="newClientHmp">HMP Client (add monthly maintenance tasks)</label>
-        </div>
-        <div class="color-row">${COLORS.map(c => `<div class="color-dot${selectedColor===c?' selected':''}" style="background:${c}${selectedColor===c?';outline:2px solid '+c+';outline-offset:2px':''}" onclick="selectedColor='${c}';toggleAddClient(true)"></div>`).join('')}</div>
-        <div class="form-actions">
-          <button class="cancel-btn" onclick="toggleAddClient(false)">Cancel</button>
-          <button class="primary-btn" onclick="addClient()">Add Client</button>
-        </div>
-      </div>`;
-    setTimeout(() => document.getElementById('newClientName')?.focus(), 50);
-  } else {
-    area.innerHTML = `<button class="add-client-btn" onclick="toggleAddClient(true)">+ New Client</button>`;
-  }
-}
-
-function addClient() {
-  const name = document.getElementById('newClientName')?.value.trim();
-  if (!name) return;
-  const address = document.getElementById('newClientAddress')?.value.trim() || '';
-  const phone = document.getElementById('newClientPhone')?.value.trim() || '';
-  const gateCode = document.getElementById('newClientGate')?.value.trim() || '';
-  const isHmp = document.getElementById('newClientHmp')?.checked || false;
-  const tasks = [];
-  if (isHmp) {
-    HMP_MONTHLY_TASKS.forEach(ht => {
-      tasks.push({ id: data.nextTaskId++, title: ht.title, status: 'To Do', priority: ht.priority, notes: 'Schedule: ' + ht.month, hmpTask: true, hmpSchedule: ht.month, createdAt: Date.now() });
-    });
-  }
-  const client = { id: data.nextClientId++, name, color: selectedColor, address, phone, gateCode, isHmp, tasks };
-  data.clients.push(client);
-  activeClientId = client.id;
-  save(); toggleAddClient(false); render();
-}
-
-function deleteClient(id) {
-  if (!confirm('Delete "' + getClient(id)?.name + '" and all their tasks?')) return;
-  data.clients = data.clients.filter(c => c.id !== id);
-  if (activeClientId === id) activeClientId = data.clients.length > 0 ? data.clients[0].id : null;
-  save(); render();
-}
-
-// Task actions
-function configureHmpModal(isHmp) {
-  const statusEl = document.getElementById('taskStatusSelect');
-  const prioField = document.getElementById('taskPriorityField');
-  const hmpRow = document.getElementById('taskHmpRow');
-  const vendorRow = document.getElementById('taskVendorRow');
-  
-  if (isHmp) {
-    // HMP mode: only To Do / Done, hide priority, show HMP fields + vendor
-    const curVal = statusEl.value;
-    statusEl.innerHTML = '<option value="To Do">To Do</option><option value="Done">Done</option>';
-    statusEl.value = (curVal === 'Done') ? 'Done' : 'To Do';
-    prioField.style.display = 'none';
-    hmpRow.style.display = 'flex';
-    vendorRow.style.display = 'block';
-  } else {
-    // Regular mode: full status, show priority, hide HMP fields + vendor
-    const curVal = statusEl.value;
-    statusEl.innerHTML = '<option value="To Do">To Do</option><option value="In Progress">In Progress</option><option value="Done">Done</option>';
-    statusEl.value = ['To Do','In Progress','Done'].includes(curVal) ? curVal : 'To Do';
-    prioField.style.display = '';
-    hmpRow.style.display = 'none';
-    vendorRow.style.display = 'none';
-  }
-}
-
-function toggleHmpFields() {
-  const checked = document.getElementById('taskHmpCheck').checked;
-  configureHmpModal(checked);
-}
-
-function openAddTask(asHmp) {
-  editingTaskId = null;
-  taskImages = [];
-  const client = getClient(activeClientId);
-  const isHmpClient = client.isHmp || false;
-  document.getElementById('taskModalTitle').textContent = asHmp ? 'New HMP Task for ' + client.name : 'New Task for ' + client.name;
-  document.getElementById('taskTitleInput').value = '';
-  document.getElementById('taskStatusSelect').value = 'To Do';
-  document.getElementById('taskPrioritySelect').value = 'medium';
-  document.getElementById('taskNotesInput').value = '';
-  document.getElementById('taskMonthSelect').value = '';
-  document.getElementById('taskScheduleSelect').value = '';
-  document.getElementById('taskVendorInput').value = '';
-  document.getElementById('taskSubName').value = '';
-  document.getElementById('taskSubStatus').value = '';
-  document.getElementById('taskSubDate').value = '';
-  document.getElementById('taskHmpCheckRow').style.display = isHmpClient ? 'flex' : 'none';
-  document.getElementById('taskHmpCheck').checked = asHmp || false;
-  configureHmpModal(asHmp || false);
-  populateSubcontractorList();
-  renderImagePreviews();
-  document.getElementById('taskModalActions').innerHTML = `
-    <button class="cancel-btn" onclick="closeTaskModal()">Cancel</button>
-    <button class="primary-btn" onclick="saveTask()">Add Task</button>`;
-  document.getElementById('taskModal').style.display = 'flex';
-  setTimeout(() => document.getElementById('taskTitleInput').focus(), 50);
-}
-
-function openEditTask(taskId) {
-  const client = getClient(activeClientId);
-  const task = client.tasks.find(t => t.id === taskId);
-  if (!task) return;
-  editingTaskId = taskId;
-  taskImages = task.images ? [...task.images] : [];
-  const isHmpClient = client.isHmp || false;
-  const isHmpTask = task.hmpTask || false;
-  document.getElementById('taskModalTitle').textContent = isHmpTask ? 'Edit HMP Task' : 'Edit Task';
-  document.getElementById('taskTitleInput').value = task.title;
-  document.getElementById('taskPrioritySelect').value = task.priority;
-  document.getElementById('taskNotesInput').value = task.notes || '';
-  document.getElementById('taskMonthSelect').value = task.scheduledMonth || '';
-  document.getElementById('taskScheduleSelect').value = task.hmpSchedule || '';
-  document.getElementById('taskVendorInput').value = task.vendor || '';
-  document.getElementById('taskSubName').value = task.subName || '';
-  document.getElementById('taskSubStatus').value = task.subStatus || '';
-  document.getElementById('taskSubDate').value = task.subDate || '';
-  document.getElementById('taskHmpCheckRow').style.display = isHmpClient ? 'flex' : 'none';
-  document.getElementById('taskHmpCheck').checked = isHmpTask;
-  configureHmpModal(isHmpTask);
-  document.getElementById('taskStatusSelect').value = task.status;
-  populateSubcontractorList();
-  renderImagePreviews();
-  document.getElementById('taskModalActions').innerHTML = `
-    <button class="cancel-btn danger-text" onclick="deleteTask(${taskId})">Delete</button>
-    <button class="primary-btn" onclick="saveTask()">Save</button>`;
-  document.getElementById('taskModal').style.display = 'flex';
-  setTimeout(() => document.getElementById('taskTitleInput').focus(), 50);
-}
-
-function closeTaskModal() {
-  document.getElementById('taskModal').style.display = 'none';
-  document.getElementById('taskImageInput').value = '';
-  editingTaskId = null;
-  taskImages = [];
-}
-
-function saveTask() {
-  const title = document.getElementById('taskTitleInput').value.trim();
-  if (!title) return;
-  const status = document.getElementById('taskStatusSelect').value;
-  const isHmpTask = document.getElementById('taskHmpCheck').checked;
-  const priority = isHmpTask ? 'medium' : document.getElementById('taskPrioritySelect').value;
-  const notes = document.getElementById('taskNotesInput').value.trim();
-  const scheduledMonth = document.getElementById('taskMonthSelect').value || '';
-  const hmpSchedule = document.getElementById('taskScheduleSelect').value || '';
-  const vendor = document.getElementById('taskVendorInput').value.trim();
-  const subName = document.getElementById('taskSubName').value.trim();
-  const subStatus = document.getElementById('taskSubStatus').value;
-  const subDate = document.getElementById('taskSubDate').value;
-  const client = getClient(activeClientId);
-
-  if (editingTaskId) {
-    const task = client.tasks.find(t => t.id === editingTaskId);
-    if (task) {
-      const wasAllMonths = task.scheduledMonth === 'All Months';
-      const nowAllMonths = scheduledMonth === 'All Months';
-      task.title = title; task.status = status; task.priority = priority; task.notes = notes;
-      task.scheduledMonth = scheduledMonth; task.hmpSchedule = hmpSchedule; task.hmpTask = isHmpTask; task.vendor = vendor;
-      task.subName = subName; task.subStatus = subStatus; task.subDate = subDate;
-      task.images = [...taskImages];
-      if (nowAllMonths && !wasAllMonths) {
-        task.monthlyStatus = {};
-        MONTHS.forEach(m => { task.monthlyStatus[m] = status; });
-      }
-      if (!nowAllMonths && wasAllMonths) {
-        delete task.monthlyStatus;
-      }
-    }
-  } else {
-    const newTask = { id: data.nextTaskId++, title, status, priority, notes, scheduledMonth, hmpSchedule, hmpTask: isHmpTask, vendor, subName, subStatus, subDate, images: [...taskImages], createdAt: Date.now() };
-    if (scheduledMonth === 'All Months') {
-      newTask.monthlyStatus = {};
-      MONTHS.forEach(m => { newTask.monthlyStatus[m] = status; });
-    }
-    client.tasks.push(newTask);
-  }
-  save(); closeTaskModal(); render();
-}
-
-function deleteTask(taskId) {
-  const client = getClient(activeClientId);
-  client.tasks = client.tasks.filter(t => t.id !== taskId);
-  save(); closeTaskModal(); render();
-}
-
-function toggleDone(taskId, forMonth) {
-  const client = getClient(activeClientId);
-  const task = client.tasks.find(t => t.id === taskId);
-  if (!task) return;
-  
-  if (forMonth && task.scheduledMonth === 'All Months' && task.monthlyStatus) {
-    // Toggle only this specific month
-    task.monthlyStatus[forMonth] = task.monthlyStatus[forMonth] === 'Done' ? 'To Do' : 'Done';
-    // Update overall status: Done only if ALL months are done
-    const allDone = MONTHS.every(m => task.monthlyStatus[m] === 'Done');
-    task.status = allDone ? 'Done' : 'To Do';
-  } else {
-    task.status = task.status === 'Done' ? 'To Do' : 'Done';
-  }
-  save(); render();
-}
-
-function esc(str) {
-  const d = document.createElement('div'); d.textContent = str; return d.innerHTML;
-}
-
-// Client edit modal
-let editingClientColor = '';
-
-function openEditClient() {
-  const client = getClient(activeClientId);
-  if (!client) return;
-  editingClientColor = client.color;
-  document.getElementById('clientModalTitle').textContent = 'Edit Client';
-  document.getElementById('editClientName').value = client.name;
-  document.getElementById('editClientAddress').value = client.address || '';
-  document.getElementById('editClientPhone').value = client.phone || '';
-  document.getElementById('editClientGate').value = client.gateCode || '';
-  document.getElementById('editClientHmp').checked = client.isHmp || false;
-  renderEditColors();
-  document.getElementById('clientModal').style.display = 'flex';
-  setTimeout(() => document.getElementById('editClientName').focus(), 50);
-}
-
-function renderEditColors() {
-  document.getElementById('editClientColors').innerHTML = COLORS.map(c =>
-    `<div class="color-dot${editingClientColor===c?' selected':''}" style="background:${c}${editingClientColor===c?';outline:2px solid '+c+';outline-offset:2px':''}" onclick="editingClientColor='${c}';renderEditColors()"></div>`
-  ).join('');
-}
-
-function closeClientModal() {
-  document.getElementById('clientModal').style.display = 'none';
-}
-
-function saveClientEdit() {
-  const name = document.getElementById('editClientName').value.trim();
-  if (!name) return;
-  const client = getClient(activeClientId);
-  if (!client) return;
-  const wasHmp = client.isHmp || false;
-  const nowHmp = document.getElementById('editClientHmp').checked;
-  client.name = name;
-  client.address = document.getElementById('editClientAddress').value.trim();
-  client.phone = document.getElementById('editClientPhone').value.trim();
-  client.gateCode = document.getElementById('editClientGate').value.trim();
-  client.color = editingClientColor;
-  client.isHmp = nowHmp;
-  // If toggled ON, add HMP tasks (skip duplicates by title)
-  if (nowHmp && !wasHmp) {
-    const existingTitles = new Set(client.tasks.map(t => t.title));
-    HMP_MONTHLY_TASKS.forEach(ht => {
-      if (!existingTitles.has(ht.title)) {
-        client.tasks.push({ id: data.nextTaskId++, title: ht.title, status: 'To Do', priority: ht.priority, notes: 'Schedule: ' + ht.month, hmpTask: true, hmpSchedule: ht.month, createdAt: Date.now() });
-      }
-    });
-  }
-  // If toggled OFF, remove only uncompleted HMP tasks
-  if (!nowHmp && wasHmp) {
-    if (confirm('Remove incomplete HMP maintenance tasks?')) {
-      client.tasks = client.tasks.filter(t => !t.hmpTask || t.status === 'Done');
-    }
-  }
-  save(); closeClientModal(); render();
-}
-
-// Subcontractor helpers
-function populateSubcontractorList() {
-  const names = new Set();
-  data.clients.forEach(c => {
-    c.tasks.forEach(t => {
-      if (t.subName) names.add(t.subName);
-    });
-  });
-  const dl = document.getElementById('subcontractorList');
-  dl.innerHTML = Array.from(names).sort().map(n => `<option value="${esc(n)}">`).join('');
-}
-
-function formatDate(dateStr) {
-  if (!dateStr) return '';
-  const d = new Date(dateStr + 'T00:00:00');
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-}
-
-const SUB_STATUS_COLORS = {
-  'Scheduled': { bg: '#E0E7FF', color: '#4338CA' },
-  'Confirmed': { bg: '#DBEAFE', color: '#1D4ED8' },
-  'In Progress': { bg: '#FFF4E0', color: '#B8860B' },
-  'Completed': { bg: '#E8F5E8', color: '#2E7D46' },
-  'Cancelled': { bg: '#FFE4E1', color: '#E84D3D' },
-  'Pending': { bg: '#F3F4F6', color: '#6B7280' },
-};
-
-function subStatusTag(status) {
-  const c = SUB_STATUS_COLORS[status] || { bg: '#F3F4F6', color: '#6B7280' };
-  return `<span class="sub-status-tag" style="background:${c.bg};color:${c.color}">${status}</span>`;
-}
-
-// Image handling
-function handleImageUpload(event) {
-  const files = Array.from(event.target.files);
-  if (!files.length) return;
-  files.forEach(file => {
-    if (!file.type.startsWith('image/')) return;
-    const reader = new FileReader();
-    reader.onload = function(e) {
-      // Resize to save storage space
-      const img = new Image();
-      img.onload = function() {
-        const canvas = document.createElement('canvas');
-        const MAX = 800;
-        let w = img.width, h = img.height;
-        if (w > MAX || h > MAX) {
-          if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
-          else { w = Math.round(w * MAX / h); h = MAX; }
-        }
-        canvas.width = w; canvas.height = h;
-        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-        const compressed = canvas.toDataURL('image/jpeg', 0.7);
-        taskImages.push(compressed);
-        renderImagePreviews();
-      };
-      img.src = e.target.result;
-    };
-    reader.readAsDataURL(file);
-  });
-  event.target.value = '';
-}
-
-function removeImage(index) {
-  taskImages.splice(index, 1);
-  renderImagePreviews();
-}
-
-function renderImagePreviews() {
-  const grid = document.getElementById('taskImagePreviews');
-  if (!grid) return;
-  if (taskImages.length === 0) { grid.innerHTML = ''; return; }
-  grid.innerHTML = taskImages.map((img, i) =>
-    `<div class="img-preview-item">
-      <img src="${img}" onclick="openLightboxFromModal(${i})">
-      <button class="img-preview-remove" onclick="removeImage(${i})">&times;</button>
-    </div>`
-  ).join('');
-}
-
-// Lightbox
-function openLightbox(taskId, index) {
-  const client = getClient(activeClientId);
-  const task = client.tasks.find(t => t.id === taskId);
-  if (!task || !task.images || !task.images.length) return;
-  lightboxImages = task.images;
-  lightboxIndex = index || 0;
-  showLightbox();
-}
-
-function openLightboxFromModal(index) {
-  lightboxImages = [...taskImages];
-  lightboxIndex = index || 0;
-  showLightbox();
-}
-
-function showLightbox() {
-  document.getElementById('lightboxImg').src = lightboxImages[lightboxIndex];
-  document.getElementById('lightbox').style.display = 'flex';
-}
-
-function closeLightbox() {
-  document.getElementById('lightbox').style.display = 'none';
-  lightboxImages = [];
-}
-
-function navLightbox(dir) {
-  lightboxIndex = (lightboxIndex + dir + lightboxImages.length) % lightboxImages.length;
-  document.getElementById('lightboxImg').src = lightboxImages[lightboxIndex];
-}
-
-// Keyboard navigation for lightbox
-document.addEventListener('keydown', e => {
-  if (document.getElementById('lightbox').style.display === 'flex') {
-    if (e.key === 'Escape') closeLightbox();
-    if (e.key === 'ArrowLeft') navLightbox(-1);
-    if (e.key === 'ArrowRight') navLightbox(1);
-  }
-});
-
-// Keyboard: Enter to add task from modal
-document.getElementById('taskTitleInput').addEventListener('keydown', e => {
-  if (e.key === 'Enter' && e.target.value.trim()) saveTask();
-  if (e.key === 'Escape') closeTaskModal();
-});
-
-// --- Authentication ---
-const TEAM_PASSWORD = 'Clientflow2026';
-
-function attemptLogin() {
-  const input = document.getElementById('loginPassword').value;
-  if (input === TEAM_PASSWORD) {
-    sessionStorage.setItem('cf-auth', 'true');
-    document.getElementById('loginScreen').style.display = 'none';
-    document.getElementById('app').style.display = 'flex';
-    load();
-  } else {
-    document.getElementById('loginError').textContent = 'Incorrect password. Try again.';
-    document.getElementById('loginPassword').value = '';
-    document.getElementById('loginPassword').focus();
-  }
-}
-
-// Auto-login if already authenticated this session
-if (sessionStorage.getItem('cf-auth') === 'true') {
-  document.getElementById('loginScreen').style.display = 'none';
-  document.getElementById('app').style.display = 'flex';
-  load();
-} else {
-  setTimeout(() => document.getElementById('loginPassword').focus(), 100);
-}
+function handleImageUpload(e){Array.from(e.target.files).forEach(f=>{if(!f.type.startsWith('image/'))return;const r=new FileReader();r.onload=function(ev){const img=new Image();img.onload=function(){const cv=document.createElement('canvas');const M=800;let w=img.width,h=img.height;if(w>M||h>M){if(w>h){h=Math.round(h*M/w);w=M;}else{w=Math.round(w*M/h);h=M;}}cv.width=w;cv.height=h;cv.getContext('2d').drawImage(img,0,0,w,h);taskImages.push(cv.toDataURL('image/jpeg',0.7));renderImgPrev();};img.src=ev.target.result;};r.readAsDataURL(f);});e.target.value='';}
+function removeImage(i){taskImages.splice(i,1);renderImgPrev();}
+function renderImgPrev(){const g=document.getElementById('taskImagePreviews');if(!g)return;g.innerHTML=taskImages.length?taskImages.map((img,i)=>`<div class="img-preview-item"><img src="${img}" onclick="openLBM(${i})"><button class="img-preview-remove" onclick="removeImage(${i})">&times;</button></div>`).join(''):'';}
+function openLB(tid,idx){const t=getClient(activeClientId).tasks.find(x=>x.id===tid);if(!t?.images?.length)return;lightboxImages=t.images;lightboxIndex=idx||0;showLB();}
+function openLBM(i){lightboxImages=[...taskImages];lightboxIndex=i||0;showLB();}
+function showLB(){document.getElementById('lightboxImg').src=lightboxImages[lightboxIndex];document.getElementById('lightbox').style.display='flex';}
+function closeLightbox(){document.getElementById('lightbox').style.display='none';lightboxImages=[];}
+function navLightbox(d){lightboxIndex=(lightboxIndex+d+lightboxImages.length)%lightboxImages.length;document.getElementById('lightboxImg').src=lightboxImages[lightboxIndex];}
+document.addEventListener('keydown',e=>{if(document.getElementById('lightbox').style.display==='flex'){if(e.key==='Escape')closeLightbox();if(e.key==='ArrowLeft')navLightbox(-1);if(e.key==='ArrowRight')navLightbox(1);}});
+document.getElementById('taskTitleInput').addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.value.trim())saveTask();if(e.key==='Escape')closeTaskModal();});
+if(sessionStorage.getItem('cf-auth')==='true')load();
 </script>
 </body>
 </html>
