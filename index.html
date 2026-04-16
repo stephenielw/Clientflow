@@ -6,6 +6,7 @@
 <title>Clientflow — Task Organizer</title>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<script src="https://alcdn.msauth.net/browser/2.38.0/js/msal-browser.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -143,6 +144,9 @@
   .task-pdf-link:hover { background: #FFE0C0; }
   .export-btn { padding: 6px 14px; border-radius: 8px; border: 1px solid #2E7D46; background: #E8F5E8; color: #2E7D46; font-size: 12px; font-weight: 600; cursor: pointer; font-family: 'DM Sans', sans-serif; display: flex; align-items: center; gap: 4px; }
   .export-btn:hover { background: #2E7D46; color: #fff; }
+  .export-btn.syncing { opacity: 0.6; pointer-events: none; }
+  .export-btn-secondary { padding: 6px 14px; border-radius: 8px; border: 1px solid #E0E0EE; background: #fff; color: #666; font-size: 12px; font-weight: 500; cursor: pointer; font-family: 'DM Sans', sans-serif; display: flex; align-items: center; gap: 4px; }
+  .export-btn-secondary:hover { background: #F0F0F5; }
   .lightbox-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.85); display: flex; align-items: center; justify-content: center; z-index: 200; cursor: pointer; }
   .lightbox-img { max-width: 90vw; max-height: 85vh; border-radius: 8px; object-fit: contain; }
   .lightbox-close { position: fixed; top: 16px; right: 20px; background: rgba(255,255,255,0.15); border: none; color: #fff; font-size: 28px; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; }
@@ -211,7 +215,7 @@ function renderMain(){
   const p=document.getElementById('mainPanel'),c=getClient(activeClientId);
   if(!c){p.innerHTML=`<div class="empty-state"><div class="empty-icon">👥</div><p class="empty-text">Add a client to get started.</p></div>`;return;}
   const s=stats(c),reg=c.tasks.filter(t=>!t.hmpTask),hmp=c.tasks.filter(t=>t.hmpTask);
-  let h=`<div class="main-header"><div><h2 class="main-title"><span class="color-indicator" style="background:${c.color}"></span>${esc(c.name)}${c.isHmp?' <span class="hmp-badge">HMP</span>':''}</h2><div class="main-subtitle">${s.total} tasks · ${s.done} done · ${s.inProgress} active</div></div><div style="display:flex;gap:8px;align-items:center"><button class="edit-client-btn" onclick="openEditClient()">✎ Edit</button><button class="export-btn" onclick="exportToOutlook()">📅 Export to Outlook</button><button class="add-task-btn" onclick="openAddTask(false)">+ Add Task</button></div></div><div class="client-info-bar"><div class="client-info-item"><span class="client-info-icon">📍</span><span class="client-info-label">Address</span><span class="${c.address?'client-info-value':'client-info-none'}">${c.address?esc(c.address):'Not set'}</span></div><div class="client-info-item"><span class="client-info-icon">📞</span><span class="client-info-label">Her</span><span class="${c.herPhone?'client-info-value':'client-info-none'}">${c.herPhone?esc(c.herPhone):'Not set'}</span></div><div class="client-info-item"><span class="client-info-icon">📞</span><span class="client-info-label">His</span><span class="${c.hisPhone?'client-info-value':'client-info-none'}">${c.hisPhone?esc(c.hisPhone):'Not set'}</span></div><div class="client-info-item"><span class="client-info-icon">🔑</span><span class="client-info-label">Gate</span><span class="${c.gateCode?'client-info-value':'client-info-none'}">${c.gateCode?esc(c.gateCode):'Not set'}</span></div>${c.email1?`<div class="client-info-item"><span class="client-info-icon">✉</span><span class="client-info-value">${esc(c.email1)}</span><a href="mailto:${esc(c.email1)}" class="email-info-btn">Send</a></div>`:''}${c.email2?`<div class="client-info-item"><span class="client-info-icon">✉</span><span class="client-info-value">${esc(c.email2)}</span><a href="mailto:${esc(c.email2)}" class="email-info-btn">Send</a></div>`:''}</div>`;
+  let h=`<div class="main-header"><div><h2 class="main-title"><span class="color-indicator" style="background:${c.color}"></span>${esc(c.name)}${c.isHmp?' <span class="hmp-badge">HMP</span>':''}</h2><div class="main-subtitle">${s.total} tasks · ${s.done} done · ${s.inProgress} active</div></div><div style="display:flex;gap:8px;align-items:center"><button class="edit-client-btn" onclick="openEditClient()">✎ Edit</button><button class="export-btn" id="syncOutlookBtn" onclick="syncToOutlook()">📅 Sync to Outlook</button><button class="export-btn-secondary" onclick="exportToOutlook()">⬇ Download .ics</button><button class="add-task-btn" onclick="openAddTask(false)">+ Add Task</button></div></div><div class="client-info-bar"><div class="client-info-item"><span class="client-info-icon">📍</span><span class="client-info-label">Address</span><span class="${c.address?'client-info-value':'client-info-none'}">${c.address?esc(c.address):'Not set'}</span></div><div class="client-info-item"><span class="client-info-icon">📞</span><span class="client-info-label">Her</span><span class="${c.herPhone?'client-info-value':'client-info-none'}">${c.herPhone?esc(c.herPhone):'Not set'}</span></div><div class="client-info-item"><span class="client-info-icon">📞</span><span class="client-info-label">His</span><span class="${c.hisPhone?'client-info-value':'client-info-none'}">${c.hisPhone?esc(c.hisPhone):'Not set'}</span></div><div class="client-info-item"><span class="client-info-icon">🔑</span><span class="client-info-label">Gate</span><span class="${c.gateCode?'client-info-value':'client-info-none'}">${c.gateCode?esc(c.gateCode):'Not set'}</span></div>${c.email1?`<div class="client-info-item"><span class="client-info-icon">✉</span><span class="client-info-value">${esc(c.email1)}</span><a href="mailto:${esc(c.email1)}" class="email-info-btn">Send</a></div>`:''}${c.email2?`<div class="client-info-item"><span class="client-info-icon">✉</span><span class="client-info-value">${esc(c.email2)}</span><a href="mailto:${esc(c.email2)}" class="email-info-btn">Send</a></div>`:''}</div>`;
   let tabs='';if(c.isHmp){const hd=hmp.filter(t=>t.status==='Done').length;tabs=`<div class="section-tabs"><button class="section-tab${viewTab==='tasks'?' active':''}" onclick="viewTab='tasks';render()">Tasks <span class="tab-count">(${reg.length})</span></button><button class="section-tab hmp-tab${viewTab==='hmp'?' active':''}" onclick="viewTab='hmp';render()">HMP <span class="tab-count">(${hd}/${hmp.length})</span></button></div>`;}else viewTab='tasks';
   let body='';
   if(viewTab==='tasks'){let f=reg.filter(t=>{if(filterStatus!=='All'&&t.status!==filterStatus)return false;if(filterPriority!=='All'&&t.priority!==filterPriority)return false;if(searchTerm&&!t.title.toLowerCase().includes(searchTerm.toLowerCase()))return false;return true;});const po={high:0,medium:1,low:2},so={'To Do':0,'In Progress':1,'Done':2};f.sort((a,b)=>po[a.priority]!==po[b.priority]?po[a.priority]-po[b.priority]:so[a.status]-so[b.status]);function ch(l,v,ty){return `<button class="filter-chip${(ty==='status'?filterStatus:filterPriority)===v?' active':''}" onclick="${ty==='status'?'filterStatus':'filterPriority'}='${v}';render()">${l}</button>`;}let sc=ch('All','All','status')+STATUS_LIST.map(x=>ch(x,x,'status')).join(''),pc=ch('All','All','priority')+['high','medium','low'].map(x=>ch(PRIORITY[x].label,x,'priority')).join('');let th='';if(!f.length)th=`<div class="empty-state"><div class="empty-icon">📋</div><p class="empty-text">${reg.length?'No match.':'No tasks yet.'}</p></div>`;else f.forEach(t=>{th+=renderRow(t);});body=`<div class="filter-bar"><input class="search-input" placeholder="Search..." value="${esc(searchTerm)}" oninput="searchTerm=this.value;render()"><div class="filter-group">${sc}</div><div class="filter-group">${pc}</div></div><div class="task-list">${th}</div>`;}
@@ -318,6 +322,119 @@ function exportToOutlook(){
   link.download=client.name.replace(/[^a-zA-Z0-9]/g,'_')+'_schedule.ics';link.click();
   URL.revokeObjectURL(link.href);
   alert('Schedule exported for '+client.name+' ('+events.length+' events).\n\nWhen Outlook opens:\n1. Choose IMPORT (not Open as New)\n2. Select the "HMP & Service Schedule" calendar\n3. Click OK\n\nIf you don\'t have that calendar yet, create it first in Outlook under My Calendars.');
+}
+
+// Microsoft Graph / Outlook integration
+const msalConfig = {
+  auth: {
+    clientId: '27fb878a-bd62-474a-8756-14b98770c9bb',
+    authority: 'https://login.microsoftonline.com/common',
+    redirectUri: window.location.origin + window.location.pathname
+  },
+  cache: { cacheLocation: 'sessionStorage' }
+};
+let msalApp = null;
+const graphScopes = { scopes: ['Calendars.ReadWrite'] };
+
+async function initMsal() {
+  if (msalApp) return;
+  msalApp = new msal.PublicClientApplication(msalConfig);
+  await msalApp.initialize();
+}
+
+async function getGraphToken() {
+  await initMsal();
+  const accounts = msalApp.getAllAccounts();
+  if (accounts.length > 0) {
+    try { const r = await msalApp.acquireTokenSilent({ ...graphScopes, account: accounts[0] }); return r.accessToken; } catch(e) {}
+  }
+  const r = await msalApp.loginPopup(graphScopes);
+  return r.accessToken;
+}
+
+async function graphFetch(url, options = {}) {
+  const token = await getGraphToken();
+  const resp = await fetch('https://graph.microsoft.com/v1.0' + url, {
+    ...options,
+    headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json', ...(options.headers || {}) }
+  });
+  if (!resp.ok) { const err = await resp.text(); throw new Error(err); }
+  if (resp.status === 204) return null;
+  return resp.json();
+}
+
+async function findOrCreateCalendar() {
+  const calName = 'HMP & Service Schedule';
+  const list = await graphFetch('/me/calendars');
+  let cal = list.value.find(c => c.name === calName);
+  if (!cal) {
+    cal = await graphFetch('/me/calendars', { method: 'POST', body: JSON.stringify({ name: calName }) });
+  }
+  return cal.id;
+}
+
+async function syncToOutlook() {
+  const client = getClient(activeClientId);
+  if (!client) return;
+  const btn = document.getElementById('syncOutlookBtn');
+  const origText = btn.innerHTML;
+  btn.innerHTML = '⏳ Syncing...';
+  btn.classList.add('syncing');
+
+  try {
+    const calId = await findOrCreateCalendar();
+    let events = [];
+
+    client.tasks.forEach(t => {
+      const subs = t.subcontractors || [];
+      subs.forEach(s => {
+        if (s.date) {
+          const startDT = s.date + 'T' + (s.time || '09:00') + ':00';
+          const endH = s.time ? String(Math.min(23, parseInt(s.time.split(':')[0]) + 1)).padStart(2, '0') + ':' + s.time.split(':')[1] : '10:00';
+          const endDT = s.date + 'T' + endH + ':00';
+          const desc = ['Client: ' + client.name, 'Task: ' + t.title, 'Sub: ' + (s.name || 'TBD'), 'Status: ' + (s.status || 'N/A')];
+          if (client.address) desc.push('Address: ' + client.address);
+          if (t.notes) desc.push('Notes: ' + t.notes);
+          events.push({
+            subject: t.title + ' - ' + (s.name || 'Subcontractor'),
+            body: { contentType: 'Text', content: desc.join('\n') },
+            start: { dateTime: startDT, timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone },
+            end: { dateTime: endDT, timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone },
+            location: { displayName: client.address || '' }
+          });
+        }
+      });
+      if (!subs.length && t.subDate) {
+        events.push({
+          subject: t.title + (t.subName ? ' - ' + t.subName : ''),
+          body: { contentType: 'Text', content: 'Client: ' + client.name + '\nTask: ' + t.title },
+          start: { dateTime: t.subDate + 'T09:00:00', timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone },
+          end: { dateTime: t.subDate + 'T10:00:00', timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone },
+          location: { displayName: client.address || '' }
+        });
+      }
+    });
+
+    if (!events.length) {
+      alert('No scheduled dates found for ' + client.name + '.\n\nAdd dates to subcontractors first.');
+      btn.innerHTML = origText; btn.classList.remove('syncing');
+      return;
+    }
+
+    let created = 0;
+    for (const ev of events) {
+      await graphFetch('/me/calendars/' + calId + '/events', { method: 'POST', body: JSON.stringify(ev) });
+      created++;
+    }
+
+    alert(created + ' event' + (created !== 1 ? 's' : '') + ' added to "HMP & Service Schedule" calendar for ' + client.name + '.');
+  } catch (e) {
+    console.error('Outlook sync error:', e);
+    alert('Sync failed. Make sure you approved the permissions in the Microsoft popup.\n\nError: ' + (e.message || e));
+  }
+
+  btn.innerHTML = origText;
+  btn.classList.remove('syncing');
 }
 
 if(sessionStorage.getItem('cf-auth')==='true')load();
