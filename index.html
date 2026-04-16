@@ -280,35 +280,44 @@ function removePdf(i){taskPdfs.splice(i,1);renderPdfList();}
 function renderPdfList(){const l=document.getElementById('taskPdfList');if(!l)return;l.innerHTML=taskPdfs.length?taskPdfs.map((p,i)=>`<div class="pdf-item"><span class="pdf-icon">📄</span><span class="pdf-name">${esc(p.name)}</span><span class="pdf-size">${(p.size/1024).toFixed(0)}KB</span><button class="pdf-remove" onclick="removePdf(${i})">&times;</button></div>`).join(''):'';}
 function openPdf(tid,idx){const t=getClient(activeClientId).tasks.find(x=>x.id===tid);if(!t?.pdfs?.[idx])return;const p=t.pdfs[idx];const link=document.createElement('a');link.href=p.data;link.download=p.name;link.target='_blank';link.click();}
 
-// Export to Outlook (.ics)
+// Export to Outlook (.ics) — compatible with classic & new Outlook
 function exportToOutlook(){
   const client=getClient(activeClientId);if(!client)return;
   let events=[];
   client.tasks.forEach(t=>{
     const subs=t.subcontractors||[];
-    // Tasks with subcontractor dates
     subs.forEach(s=>{
       if(s.date){
         const dt=s.date.replace(/-/g,'');
         const time=s.time?s.time.replace(':','')+'00':'090000';
-        const endTime=s.time?String(parseInt(s.time.split(':')[0])+1).padStart(2,'0')+s.time.split(':')[1]+'00':'100000';
-        events.push({summary:`${t.title} - ${s.name||'Subcontractor'}`,location:client.address||'',description:`Client: ${client.name}\\nTask: ${t.title}\\nSubcontractor: ${s.name||'TBD'}\\nStatus: ${s.status||'N/A'}${t.notes?'\\nNotes: '+t.notes:''}`,dtstart:dt+'T'+time,dtend:dt+'T'+endTime});
+        const h2=s.time?String(Math.min(23,parseInt(s.time.split(':')[0])+1)).padStart(2,'0')+s.time.split(':')[1]+'00':'100000';
+        const uid=Date.now()+'_'+t.id+'_'+Math.random().toString(36).slice(2,8)+'@clientflow';
+        const desc=['Client: '+client.name,'Task: '+t.title,'Sub: '+(s.name||'TBD'),'Status: '+(s.status||'N/A')];
+        if(client.address)desc.push('Address: '+client.address);
+        if(t.notes)desc.push('Notes: '+t.notes);
+        events.push({uid,summary:t.title+' - '+(s.name||'Subcontractor'),location:client.address||'',description:desc.join('\\n'),dtstart:dt+'T'+time,dtend:dt+'T'+h2});
       }
     });
-    // Legacy single sub
     if(!subs.length&&t.subDate){
       const dt=t.subDate.replace(/-/g,'');
-      events.push({summary:`${t.title}${t.subName?' - '+t.subName:''}`,location:client.address||'',description:`Client: ${client.name}\\nTask: ${t.title}${t.subName?'\\nSubcontractor: '+t.subName:''}`,dtstart:dt+'T090000',dtend:dt+'T100000'});
+      const uid=Date.now()+'_'+t.id+'_legacy@clientflow';
+      events.push({uid,summary:t.title+(t.subName?' - '+t.subName:''),location:client.address||'',description:'Client: '+client.name+'\\nTask: '+t.title+(t.subName?'\\nSub: '+t.subName:''),dtstart:dt+'T090000',dtend:dt+'T100000'});
     }
   });
-  if(!events.length){alert('No scheduled dates found for '+client.name+'. Add dates to subcontractors to export them to your calendar.');return;}
-  let ics='BEGIN:VCALENDAR\\nVERSION:2.0\\nPRODID:-//Clientflow//EN\\nCALSCALE:GREGORIAN\\nMETHOD:PUBLISH\\n';
-  events.forEach(ev=>{ics+=`BEGIN:VEVENT\\nDTSTART:${ev.dtstart}\\nDTEND:${ev.dtend}\\nSUMMARY:${ev.summary}\\nLOCATION:${ev.location}\\nDESCRIPTION:${ev.description}\\nEND:VEVENT\\n`;});
-  ics+='END:VCALENDAR';
-  const blob=new Blob([ics.replace(/\\n/g,'\r\n')],{type:'text/calendar'});
+  if(!events.length){alert('No scheduled dates found for '+client.name+'.\\n\\nAdd dates to subcontractors first, then export.');return;}
+  const now=new Date();const stamp=now.toISOString().replace(/[-:]/g,'').replace(/\.\d+/,'');
+  let lines=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Clientflow//Task Organizer//EN','CALSCALE:GREGORIAN','METHOD:PUBLISH','X-WR-CALNAME:HMP & Service Schedule','X-WR-CALDESC:Clientflow scheduled tasks for '+client.name];
+  events.forEach(ev=>{
+    lines.push('BEGIN:VEVENT','UID:'+ev.uid,'DTSTAMP:'+stamp,'DTSTART:'+ev.dtstart,'DTEND:'+ev.dtend,'SUMMARY:'+ev.summary.replace(/,/g,'\\,'));
+    if(ev.location)lines.push('LOCATION:'+ev.location.replace(/,/g,'\\,'));
+    lines.push('DESCRIPTION:'+ev.description.replace(/,/g,'\\,'),'STATUS:CONFIRMED','END:VEVENT');
+  });
+  lines.push('END:VCALENDAR');
+  const blob=new Blob([lines.join('\r\n')],{type:'text/calendar;charset=utf-8'});
   const link=document.createElement('a');link.href=URL.createObjectURL(blob);
   link.download=client.name.replace(/[^a-zA-Z0-9]/g,'_')+'_schedule.ics';link.click();
   URL.revokeObjectURL(link.href);
+  alert('Schedule exported for '+client.name+' ('+events.length+' events).\\n\\nWhen Outlook opens:\\n1. Choose IMPORT (not Open as New)\\n2. Select the "HMP & Service Schedule" calendar\\n3. Click OK\\n\\nIf you don\\'t have that calendar yet, create it first in Outlook under My Calendars.');
 }
 
 if(sessionStorage.getItem('cf-auth')==='true')load();
