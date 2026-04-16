@@ -304,7 +304,7 @@ function exportToOutlook(){
       events.push({uid,summary:t.title+(t.subName?' - '+t.subName:''),location:client.address||'',description:'Client: '+client.name+'\\nTask: '+t.title+(t.subName?'\\nSub: '+t.subName:''),dtstart:dt+'T090000',dtend:dt+'T100000'});
     }
   });
-  if(!events.length){alert('No scheduled dates found for '+client.name+'.\\n\\nAdd dates to subcontractors first, then export.');return;}
+  if(!events.length){alert('No scheduled dates found for '+client.name+'.\n\nAdd dates to subcontractors first, then export.');return;}
   const now=new Date();const stamp=now.toISOString().replace(/[-:]/g,'').replace(/\.\d+/,'');
   let lines=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Clientflow//Task Organizer//EN','CALSCALE:GREGORIAN','METHOD:PUBLISH','X-WR-CALNAME:HMP & Service Schedule','X-WR-CALDESC:Clientflow scheduled tasks for '+client.name];
   events.forEach(ev=>{
@@ -317,7 +317,7 @@ function exportToOutlook(){
   const link=document.createElement('a');link.href=URL.createObjectURL(blob);
   link.download=client.name.replace(/[^a-zA-Z0-9]/g,'_')+'_schedule.ics';link.click();
   URL.revokeObjectURL(link.href);
-  alert('Schedule exported for '+client.name+' ('+events.length+' events).\\n\\nWhen Outlook opens:\\n1. Choose IMPORT (not Open as New)\\n2. Select the "HMP & Service Schedule" calendar\\n3. Click OK\\n\\nIf you don\\'t have that calendar yet, create it first in Outlook under My Calendars.');
+  alert('Schedule exported for '+client.name+' ('+events.length+' events).\n\nWhen Outlook opens:\n1. Choose IMPORT (not Open as New)\n2. Select the "HMP & Service Schedule" calendar\n3. Click OK\n\nIf you don\'t have that calendar yet, create it first in Outlook under My Calendars.');
 }
 
 if(sessionStorage.getItem('cf-auth')==='true')load();
