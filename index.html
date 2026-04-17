@@ -313,6 +313,22 @@ function renderDashboard(){
     html+=`</div>`;
   }
 
+  // Needs scheduling — tasks not done that have no subcontractor dates
+  const needsSched=allTasks.filter(t=>{
+    if(t.status==='Done')return false;
+    const subs=t.subcontractors||[];
+    if(subs.length>0){const hasDate=subs.some(s=>s.date);if(hasDate)return false;}
+    else if(t.subDate)return false;
+    return true;
+  });
+  html+=`<div class="dash-section"><div class="dash-section-title">📋 Needs Scheduling (${needsSched.length})</div>`;
+  if(!needsSched.length)html+=`<div class="dash-empty">All open tasks have dates scheduled — nice work!</div>`;
+  else needsSched.forEach(t=>{
+    const isHmp=t.hmpTask;
+    html+=`<div class="dash-upcoming-item" style="border-left-color:${isHmp?'#4338CA':'#E8A33D'};background:${isHmp?'#F5F3FF':'#FFFBF0'}" onclick="activeClientId=${t.clientId};showDashboard=false;render()"><div style="font-size:14px">${isHmp?'🔧':'📌'}</div><div class="dash-upcoming-info"><div class="dash-upcoming-task">${esc(t.title)}</div><div class="dash-upcoming-detail">${esc(t.clientName)} · ${t.status}${isHmp&&t.hmpSchedule?' · '+t.hmpSchedule:''}${t.priority&&!isHmp?' · '+PRIORITY[t.priority].label+' priority':''}</div></div><div style="font-size:11px;color:#B8860B;font-weight:600;white-space:nowrap">No date set</div></div>`;
+  });
+  html+=`</div>`;
+
   html+=`</div>`;
   p.innerHTML=html;
 }
