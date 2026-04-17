@@ -165,13 +165,42 @@
   .sub-status-tag { font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 50px; }
   .add-sub-btn { padding: 6px 14px; border-radius: 7px; border: 1px dashed #C7C7D6; background: #FAFAFE; color: #5B6ABF; font-size: 12px; font-weight: 600; cursor: pointer; font-family: 'DM Sans', sans-serif; margin-bottom: 10px; }
   .remove-sub-btn { padding: 4px 10px; border-radius: 6px; border: 1px solid #E0E0EE; background: #fff; color: #E84D3D; font-size: 11px; font-weight: 600; cursor: pointer; font-family: 'DM Sans', sans-serif; }
-  @media (max-width:700px) { .sidebar{width:220px;min-width:180px;} .main-header,.filter-bar,.task-list,.client-info-bar,.section-tabs{padding-left:16px;padding-right:16px;} }
+  .dash-btn { width: 100%; margin-top: 12px; padding: 8px 14px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.7); font-size: 13px; font-weight: 600; cursor: pointer; font-family: 'DM Sans', sans-serif; }
+  .dash-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
+  .dash-btn.active { background: #5B6ABF; color: #fff; border-color: #5B6ABF; }
+  .dashboard { padding: 28px; overflow-y: auto; flex: 1; }
+  .dash-title { font-family: 'Playfair Display', serif; font-size: 24px; font-weight: 700; margin-bottom: 20px; }
+  .dash-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 28px; }
+  .dash-card { background: #fff; border-radius: 12px; padding: 20px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+  .dash-card-label { font-size: 11px; font-weight: 600; color: #888; text-transform: uppercase; letter-spacing: 0.5px; }
+  .dash-card-value { font-size: 32px; font-weight: 700; margin-top: 4px; font-family: 'Playfair Display', serif; }
+  .dash-card-sub { font-size: 12px; color: #888; margin-top: 4px; }
+  .dash-section { margin-bottom: 28px; }
+  .dash-section-title { font-size: 15px; font-weight: 700; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+  .dash-client-row { display: flex; align-items: center; gap: 12px; padding: 10px 14px; background: #fff; border-radius: 10px; margin-bottom: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); cursor: pointer; }
+  .dash-client-row:hover { box-shadow: 0 3px 10px rgba(0,0,0,0.08); }
+  .dash-client-name { font-size: 14px; font-weight: 600; min-width: 140px; }
+  .dash-bar-wrap { flex: 1; height: 12px; background: #F0F0F5; border-radius: 6px; overflow: hidden; min-width: 100px; }
+  .dash-bar { height: 100%; border-radius: 6px; transition: width .3s; }
+  .dash-pct { font-size: 12px; font-weight: 600; min-width: 42px; text-align: right; }
+  .dash-stat-row { display: flex; gap: 8px; font-size: 11px; color: #888; min-width: 100px; }
+  .dash-upcoming-item { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: #fff; border-radius: 10px; margin-bottom: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); border-left: 3px solid #5B6ABF; }
+  .dash-upcoming-date { font-size: 12px; font-weight: 700; color: #5B6ABF; min-width: 90px; }
+  .dash-upcoming-info { flex: 1; }
+  .dash-upcoming-task { font-size: 13px; font-weight: 600; }
+  .dash-upcoming-detail { font-size: 11px; color: #888; }
+  .dash-alert-item { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: #FFF8F0; border-radius: 10px; margin-bottom: 6px; border-left: 3px solid #E84D3D; }
+  .dash-alert-info { flex: 1; }
+  .dash-alert-task { font-size: 13px; font-weight: 600; }
+  .dash-alert-detail { font-size: 11px; color: #888; }
+  .dash-empty { font-size: 13px; color: #aaa; font-style: italic; padding: 8px 0; }
+  @media (max-width:700px) { .sidebar{width:220px;min-width:180px;} .main-header,.filter-bar,.task-list,.client-info-bar,.section-tabs{padding-left:16px;padding-right:16px;} .dash-grid{grid-template-columns:1fr 1fr;} }
 </style>
 </head>
 <body>
 <div class="login-overlay" id="loginScreen"><div class="login-box"><div class="login-logo">Clientflow</div><div class="login-sub">Enter your team password</div><input class="login-input" id="loginPassword" type="password" placeholder="Password" onkeydown="if(event.key==='Enter')attemptLogin()"><button class="login-btn" onclick="attemptLogin()">Sign In</button><div class="login-error" id="loginError"></div></div></div>
 <div class="app" id="app" style="display:none">
-  <div class="sidebar"><div class="sidebar-header"><div class="logo">Clientflow</div><div class="subtitle" id="clientCount">0 clients</div><div class="sync-indicator"><span class="sync-dot syncing" id="syncDot"></span><span id="syncText">Connecting...</span></div></div><div class="client-list" id="clientList"></div><div id="addClientArea"><button class="add-client-btn" onclick="toggleAddClient(true)">+ New Client</button></div></div>
+  <div class="sidebar"><div class="sidebar-header"><div class="logo">Clientflow</div><div class="subtitle" id="clientCount">0 clients</div><div class="sync-indicator"><span class="sync-dot syncing" id="syncDot"></span><span id="syncText">Connecting...</span></div><button class="dash-btn" id="dashBtn" onclick="toggleDashboard()">📊 Dashboard</button></div><div class="client-list" id="clientList"></div><div id="addClientArea"><button class="add-client-btn" onclick="toggleAddClient(true)">+ New Client</button></div></div>
   <div class="main" id="mainPanel"></div>
 </div>
 <div class="modal-overlay" id="taskModal" style="display:none" onclick="closeTaskModal()"><div class="modal" onclick="event.stopPropagation()"><div class="modal-title" id="taskModalTitle">New Task</div><input class="modal-input" id="taskTitleInput" placeholder="Task title"><div class="modal-row"><div class="modal-field"><label class="modal-label">Status</label><select class="modal-select" id="taskStatusSelect"><option value="To Do">To Do</option><option value="In Progress">In Progress</option><option value="Done">Done</option></select></div><div class="modal-field" id="taskPriorityField"><label class="modal-label">Priority</label><select class="modal-select" id="taskPrioritySelect"><option value="high">High</option><option value="medium" selected>Medium</option><option value="low">Low</option></select></div></div><div class="modal-row" id="taskHmpRow" style="display:none"><div class="modal-field"><label class="modal-label">Scheduled Month</label><select class="modal-select" id="taskMonthSelect"><option value="">— No month —</option><option value="All Months">All Months</option><option>January</option><option>February</option><option>March</option><option>April</option><option>May</option><option>June</option><option>July</option><option>August</option><option>September</option><option>October</option><option>November</option><option>December</option></select></div><div class="modal-field"><label class="modal-label">Frequency</label><select class="modal-select" id="taskScheduleSelect"><option value="">— None —</option><option>Weekly</option><option>Every Month</option><option>Quarterly</option><option>Bi-Annual</option><option>Annual</option><option>One-Time</option></select></div></div><div class="hmp-check-row" id="taskHmpCheckRow" style="display:none;margin-bottom:8px"><input type="checkbox" id="taskHmpCheck" onchange="toggleHmpFields()"><label for="taskHmpCheck" style="color:#555">Mark as HMP maintenance task</label></div><div id="subcontractorsContainer"></div><button type="button" class="add-sub-btn" onclick="addSubSection()">+ Add Subcontractor</button><datalist id="subcontractorList"></datalist><textarea class="modal-textarea" id="taskNotesInput" rows="3" placeholder="Notes (optional)"></textarea><div class="img-upload-area"><label class="modal-label">Photos</label><label class="img-upload-btn">📷 Add Photos<input type="file" id="taskImageInput" accept="image/*" multiple onchange="handleImageUpload(event)"></label><div class="img-preview-grid" id="taskImagePreviews"></div></div><div class="pdf-upload-area"><label class="modal-label">PDF Files</label><label class="pdf-upload-btn">📄 Add PDFs<input type="file" id="taskPdfInput" accept=".pdf" multiple onchange="handlePdfUpload(event)"></label><div class="pdf-list" id="taskPdfList"></div></div><div class="form-actions" id="taskModalActions"></div></div></div>
@@ -187,7 +216,7 @@ const SUB_COLORS={'Scheduled':{bg:'#E0E7FF',color:'#4338CA'},'Confirmed':{bg:'#D
 
 firebase.initializeApp({apiKey:"AIzaSyCDQ-qSdPOeESryaNzr5UN0xRDJ2MyWO7A",authDomain:"services-3e475.firebaseapp.com",databaseURL:"https://services-3e475-default-rtdb.firebaseio.com",projectId:"services-3e475",storageBucket:"services-3e475.firebasestorage.app",messagingSenderId:"389984261303",appId:"1:389984261303:web:063df6c348ed82687f6932"});
 const dataRef=firebase.database().ref('clientflow');
-let data={clients:[],nextClientId:1,nextTaskId:1},activeClientId=null,filterStatus='All',filterPriority='All',searchTerm='',editingTaskId=null,selectedColor=COLORS[0],viewTab='tasks',taskImages=[],taskPdfs=[],lightboxImages=[],lightboxIndex=0,saving=false,editingClientColor='',taskSubSections=[];
+let data={clients:[],nextClientId:1,nextTaskId:1},activeClientId=null,filterStatus='All',filterPriority='All',searchTerm='',editingTaskId=null,selectedColor=COLORS[0],viewTab='tasks',taskImages=[],taskPdfs=[],lightboxImages=[],lightboxIndex=0,saving=false,editingClientColor='',taskSubSections=[],showDashboard=false;
 const TEAM_PASSWORD='Clientflow2026';
 
 function attemptLogin(){if(document.getElementById('loginPassword').value===TEAM_PASSWORD){sessionStorage.setItem('cf-auth','true');document.getElementById('loginScreen').style.display='none';document.getElementById('app').style.display='flex';load();}else{document.getElementById('loginError').textContent='Incorrect password.';document.getElementById('loginPassword').value='';}}
@@ -208,8 +237,85 @@ function sendEmail(id){const e=document.getElementById(id)?.value.trim();if(e)wi
 function sortClients(){data.clients.sort((a,b)=>{function gl(n){if(n.includes(','))return n.split(',')[0].trim().toLowerCase();const p=n.trim().split(/\s+/);return p.length>1?p[p.length-1].toLowerCase():p[0].toLowerCase();}return gl(a.name||'').localeCompare(gl(b.name||''));});}
 function populateSubs(){const n=new Set();data.clients.forEach(c=>{c.tasks.forEach(t=>{if(t.subcontractors)(t.subcontractors||[]).forEach(s=>{if(s.name)n.add(s.name);});if(t.subName)n.add(t.subName);});});document.getElementById('subcontractorList').innerHTML=Array.from(n).sort().map(x=>`<option value="${esc(x)}">`).join('');}
 
-function render(){renderSidebar();renderMain();}
-function renderSidebar(){document.getElementById('clientCount').textContent=data.clients.length+' client'+(data.clients.length!==1?'s':'');const l=document.getElementById('clientList');l.innerHTML='';data.clients.forEach(c=>{const s=stats(c),a=c.id===activeClientId,d=document.createElement('div');d.className='client-card'+(a?' active':'');d.style.borderLeft='4px solid '+c.color;d.onclick=()=>{activeClientId=c.id;filterStatus='All';filterPriority='All';searchTerm='';viewTab='tasks';render();};let ch=`<span class="stat-chip">${s.total} task${s.total!==1?'s':''}</span>`;if(c.isHmp)ch+=`<span class="stat-chip hmp">HMP</span>`;if(s.done)ch+=`<span class="stat-chip done">${s.done} done</span>`;if(s.inProgress)ch+=`<span class="stat-chip active-tasks">${s.inProgress} active</span>`;d.innerHTML=`<div class="client-card-top"><span class="client-name">${esc(c.name)}</span><button class="delete-btn" onclick="event.stopPropagation();deleteClient(${c.id})">&times;</button></div><div class="client-stats">${ch}</div>`;l.appendChild(d);});}
+function render(){renderSidebar();if(showDashboard)renderDashboard();else renderMain();}
+function toggleDashboard(){showDashboard=!showDashboard;render();}
+
+function renderSidebar(){document.getElementById('clientCount').textContent=data.clients.length+' client'+(data.clients.length!==1?'s':'');
+  document.getElementById('dashBtn').className='dash-btn'+(showDashboard?' active':'');
+  const l=document.getElementById('clientList');l.innerHTML='';data.clients.forEach(c=>{const s=stats(c),a=c.id===activeClientId&&!showDashboard,d=document.createElement('div');d.className='client-card'+(a?' active':'');d.style.borderLeft='4px solid '+c.color;d.onclick=()=>{activeClientId=c.id;showDashboard=false;filterStatus='All';filterPriority='All';searchTerm='';viewTab='tasks';render();};let ch=`<span class="stat-chip">${s.total} task${s.total!==1?'s':''}</span>`;if(c.isHmp)ch+=`<span class="stat-chip hmp">HMP</span>`;if(s.done)ch+=`<span class="stat-chip done">${s.done} done</span>`;if(s.inProgress)ch+=`<span class="stat-chip active-tasks">${s.inProgress} active</span>`;d.innerHTML=`<div class="client-card-top"><span class="client-name">${esc(c.name)}</span><button class="delete-btn" onclick="event.stopPropagation();deleteClient(${c.id})">&times;</button></div><div class="client-stats">${ch}</div>`;l.appendChild(d);});}
+
+function renderDashboard(){
+  const p=document.getElementById('mainPanel');
+  const allTasks=[],allSubs=[];
+  let totalT=0,doneT=0,inProgT=0,hmpTotal=0,hmpDone=0;
+  data.clients.forEach(c=>{(c.tasks||[]).forEach(t=>{
+    totalT++;if(t.status==='Done')doneT++;if(t.status==='In Progress')inProgT++;
+    if(t.hmpTask){hmpTotal++;if(t.status==='Done')hmpDone++;}
+    allTasks.push({...t,clientName:c.name,clientColor:c.color,clientId:c.id});
+    (t.subcontractors||[]).forEach(s=>{if(s.date)allSubs.push({...s,taskTitle:t.title,clientName:c.name,clientId:c.id,taskId:t.id});});
+    if(!t.subcontractors?.length&&t.subDate)allSubs.push({name:t.subName||'',date:t.subDate,time:t.subTime||'',status:t.subStatus||'',taskTitle:t.title,clientName:c.name,clientId:c.id,taskId:t.id});
+  });});
+  const pct=totalT?Math.round(doneT/totalT*100):0;
+  const hmpPct=hmpTotal?Math.round(hmpDone/hmpTotal*100):0;
+
+  // Upcoming (next 30 days)
+  const today=new Date();today.setHours(0,0,0,0);
+  const in30=new Date(today);in30.setDate(in30.getDate()+30);
+  const upcoming=allSubs.filter(s=>{const d=new Date(s.date+'T00:00:00');return d>=today&&d<=in30;}).sort((a,b)=>a.date.localeCompare(b.date));
+
+  // Overdue (past date, not completed)
+  const overdue=allSubs.filter(s=>{const d=new Date(s.date+'T00:00:00');return d<today&&s.status!=='Completed';}).sort((a,b)=>a.date.localeCompare(b.date));
+
+  // High priority not done
+  const highPri=allTasks.filter(t=>t.priority==='high'&&t.status!=='Done'&&!t.hmpTask);
+
+  // Summary cards
+  let html=`<div class="dashboard"><div class="dash-title">📊 Dashboard</div>
+  <div class="dash-grid">
+    <div class="dash-card"><div class="dash-card-label">Total Tasks</div><div class="dash-card-value">${totalT}</div><div class="dash-card-sub">${doneT} done · ${inProgT} in progress · ${totalT-doneT-inProgT} to do</div></div>
+    <div class="dash-card"><div class="dash-card-label">Completion</div><div class="dash-card-value" style="color:${pct>=75?'#2E7D46':pct>=40?'#B8860B':'#E84D3D'}">${pct}%</div><div class="dash-card-sub"><div class="dash-bar-wrap" style="height:8px;margin-top:6px"><div class="dash-bar" style="width:${pct}%;background:${pct>=75?'#4CAF6A':pct>=40?'#E8A33D':'#E84D3D'}"></div></div></div></div>
+    <div class="dash-card"><div class="dash-card-label">HMP Tasks</div><div class="dash-card-value">${hmpDone}<span style="font-size:16px;color:#888">/${hmpTotal}</span></div><div class="dash-card-sub">${hmpPct}% complete</div></div>
+    <div class="dash-card"><div class="dash-card-label">Upcoming (30 days)</div><div class="dash-card-value">${upcoming.length}</div><div class="dash-card-sub">${overdue.length?'<span style="color:#E84D3D;font-weight:600">'+overdue.length+' overdue</span>':'All on track'}</div></div>
+  </div>`;
+
+  // Client progress
+  html+=`<div class="dash-section"><div class="dash-section-title">👥 Client Progress</div>`;
+  if(!data.clients.length)html+=`<div class="dash-empty">No clients yet.</div>`;
+  else data.clients.forEach(c=>{
+    const s=stats(c),pct2=s.total?Math.round(s.done/s.total*100):0,color=pct2>=75?'#4CAF6A':pct2>=40?'#E8A33D':'#E84D3D';
+    html+=`<div class="dash-client-row" onclick="activeClientId=${c.id};showDashboard=false;render()"><span style="width:8px;height:8px;border-radius:50%;background:${c.color};flex-shrink:0"></span><span class="dash-client-name">${esc(c.name)}</span><div class="dash-bar-wrap"><div class="dash-bar" style="width:${pct2}%;background:${color}"></div></div><span class="dash-pct" style="color:${color}">${pct2}%</span><span class="dash-stat-row">${s.done}/${s.total} done</span></div>`;
+  });
+  html+=`</div>`;
+
+  // Overdue
+  if(overdue.length){
+    html+=`<div class="dash-section"><div class="dash-section-title">🚨 Overdue (${overdue.length})</div>`;
+    overdue.slice(0,10).forEach(s=>{
+      html+=`<div class="dash-alert-item" onclick="activeClientId=${s.clientId};showDashboard=false;render()"><div style="font-size:18px">⚠️</div><div class="dash-alert-info"><div class="dash-alert-task">${esc(s.taskTitle)}${s.name?' — '+esc(s.name):''}</div><div class="dash-alert-detail">${esc(s.clientName)} · Was due ${formatDate(s.date)}</div></div></div>`;
+    });
+    html+=`</div>`;
+  }
+
+  // Upcoming
+  html+=`<div class="dash-section"><div class="dash-section-title">📅 Upcoming Schedule (Next 30 Days)</div>`;
+  if(!upcoming.length)html+=`<div class="dash-empty">No upcoming scheduled work.</div>`;
+  else upcoming.slice(0,15).forEach(s=>{
+    html+=`<div class="dash-upcoming-item" onclick="activeClientId=${s.clientId};showDashboard=false;render()"><div class="dash-upcoming-date">${formatDate(s.date)}${s.time?' · '+formatTime(s.time):''}</div><div class="dash-upcoming-info"><div class="dash-upcoming-task">${esc(s.taskTitle)}</div><div class="dash-upcoming-detail">${esc(s.clientName)}${s.name?' · 👷 '+esc(s.name):''}${s.status?' · '+s.status:''}</div></div></div>`;
+  });
+  html+=`</div>`;
+
+  // High priority
+  if(highPri.length){
+    html+=`<div class="dash-section"><div class="dash-section-title">🔴 High Priority Open Tasks (${highPri.length})</div>`;
+    highPri.slice(0,10).forEach(t=>{
+      html+=`<div class="dash-alert-item" style="border-left-color:#E84D3D;background:#FFF5F5" onclick="activeClientId=${t.clientId};showDashboard=false;render()"><div style="font-size:14px">🔴</div><div class="dash-alert-info"><div class="dash-alert-task">${esc(t.title)}</div><div class="dash-alert-detail">${esc(t.clientName)} · ${t.status}</div></div></div>`;
+    });
+    html+=`</div>`;
+  }
+
+  html+=`</div>`;
+  p.innerHTML=html;
+}
 
 function renderMain(){
   const p=document.getElementById('mainPanel'),c=getClient(activeClientId);
