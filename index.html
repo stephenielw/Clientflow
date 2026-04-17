@@ -366,11 +366,18 @@ async function graphFetch(url, options = {}) {
 async function findOrCreateCalendar() {
   const calName = 'HMP & Service Schedule';
   const list = await graphFetch('/me/calendars');
-  let cal = list.value.find(c => c.name === calName);
-  if (!cal) {
+  let cal = list.value.find(c => c.name.toLowerCase().trim() === calName.toLowerCase().trim());
+  if (cal) return cal.id;
+  try {
     cal = await graphFetch('/me/calendars', { method: 'POST', body: JSON.stringify({ name: calName }) });
+    return cal.id;
+  } catch(e) {
+    // If creation fails (already exists with slightly different match), search again more broadly
+    const list2 = await graphFetch('/me/calendars');
+    cal = list2.value.find(c => c.name.toLowerCase().includes('hmp'));
+    if (cal) return cal.id;
+    throw e;
   }
-  return cal.id;
 }
 
 async function syncToOutlook() {
