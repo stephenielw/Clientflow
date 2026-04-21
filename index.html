@@ -216,6 +216,13 @@
   .cal-event:hover { filter: brightness(0.92); }
   .cal-event-more { font-size: 10px; color: #888; padding: 1px 5px; cursor: pointer; }
   .cal-event-more:hover { color: #5B6ABF; }
+  .cal-event.outlook-event { background: #FFF4E0 !important; color: #B8860B !important; border-left-color: #E8A33D !important; }
+  .cal-sync-btn { padding: 5px 12px; border-radius: 8px; border: 1px solid #5B6ABF; background: #F5F3FF; color: #5B6ABF; font-size: 11px; font-weight: 600; cursor: pointer; font-family: 'DM Sans', sans-serif; }
+  .cal-sync-btn:hover { background: #5B6ABF; color: #fff; }
+  .cal-sync-btn.syncing { opacity: 0.6; pointer-events: none; }
+  .cal-sync-status { font-size: 10px; color: #aaa; }
+  .cal-legend { display: flex; gap: 16px; align-items: center; margin-top: 10px; font-size: 11px; color: #888; }
+  .cal-legend-dot { width: 10px; height: 10px; border-radius: 3px; display: inline-block; margin-right: 4px; }
   @media (max-width:700px) { .sidebar{width:220px;min-width:180px;} .main-header,.filter-bar,.task-list,.client-info-bar,.section-tabs{padding-left:16px;padding-right:16px;} .dash-grid{grid-template-columns:1fr 1fr;} }
 </style>
 </head>
@@ -240,6 +247,7 @@ firebase.initializeApp({apiKey:"AIzaSyCDQ-qSdPOeESryaNzr5UN0xRDJ2MyWO7A",authDom
 const dataRef=firebase.database().ref('clientflow');
 let data={clients:[],nextClientId:1,nextTaskId:1},activeClientId=null,filterStatus='All',filterPriority='All',searchTerm='',editingTaskId=null,selectedColor=COLORS[0],viewTab='tasks',taskImages=[],taskPdfs=[],lightboxImages=[],lightboxIndex=0,saving=false,editingClientColor='',taskSubSections=[],showDashboard=false;
 let calYear=new Date().getFullYear(),calMonth=new Date().getMonth();
+let outlookEvents=[],outlookSyncing=false,outlookLastSync=null;
 const TEAM_PASSWORD='Clientflow2026';
 
 function attemptLogin(){if(document.getElementById('loginPassword').value===TEAM_PASSWORD){sessionStorage.setItem('cf-auth','true');document.getElementById('loginScreen').style.display='none';document.getElementById('app').style.display='flex';load();}else{document.getElementById('loginError').textContent='Incorrect password.';document.getElementById('loginPassword').value='';}}
@@ -270,6 +278,46 @@ function renderSidebar(){document.getElementById('clientCount').textContent=data
 function calNav(dir){calMonth+=dir;if(calMonth>11){calMonth=0;calYear++;}if(calMonth<0){calMonth=11;calYear--;}render();}
 function calToday(){calYear=new Date().getFullYear();calMonth=new Date().getMonth();render();}
 
+async function syncFromOutlook(){
+  outlookSyncing=true;render();
+  try{
+    const calId=await findOrCreateCalendar();
+    // Fetch events from 1 year ago to 1 year ahead
+    const now=new Date();
+    const start=new Date(now.getFullYear()-1,0,1).toISOString();
+    const end=new Date(now.getFullYear()+1,11,31).toISOString();
+    let allEvs=[],url='/me/calendars/'+calId+'/calendarView?startDateTime='+encodeURIComponent(start)+'&endDateTime='+encodeURIComponent(end)+'&$top=200&$select=subject,start,end,location,body,isOrganizer';
+    while(url){
+      const resp=await graphFetch(url);
+      if(resp.value)allEvs=allEvs.concat(resp.value);
+      url=resp['@odata.nextLink']?resp['@odata.nextLink'].replace('https://graph.microsoft.com/v1.0',''):null;
+    }
+    // Convert to our format
+    outlookEvents=allEvs.map(ev=>{
+      const startDT=ev.start?.dateTime||'';
+      const date=startDT.slice(0,10);
+      const time=startDT.slice(11,16);
+      const subject=ev.subject||'';
+      // Try to detect if this came from Clientflow (has " - " separator for sub name)
+      const parts=subject.split(' - ');
+      const taskTitle=parts[0]||subject;
+      const subName=parts.length>1?parts.slice(1).join(' - '):'';
+      return{
+        date,time,name:subName,taskTitle,
+        clientName:ev.location?.displayName||'',
+        source:'outlook',outlookId:ev.id,
+        body:ev.body?.content||''
+      };
+    });
+    outlookLastSync=new Date();
+    outlookSyncing=false;render();
+  }catch(e){
+    console.error('Outlook fetch error:',e);
+    outlookSyncing=false;render();
+    alert('Failed to sync from Outlook. Make sure you are signed in.\n\nError: '+(e.message||e));
+  }
+}
+
 function buildCalendar(allSubs){
   const mNames=['January','February','March','April','May','June','July','August','September','October','November','December'];
   const dNames=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
@@ -288,10 +336,21 @@ function buildCalendar(allSubs){
     if(!s.date)return;
     const key=s.date;
     if(!evMap[key])evMap[key]=[];
-    evMap[key].push(s);
+    evMap[key].push({...s,source:'clientflow'});
   });
 
-  let h=`<div class="cal-wrap"><div class="cal-header"><div class="cal-month-title">📅 ${mNames[calMonth]} ${calYear}</div><div class="cal-nav"><button class="cal-today-btn" onclick="calToday()">Today</button><button class="cal-nav-btn" onclick="calNav(-1)">‹</button><button class="cal-nav-btn" onclick="calNav(1)">›</button></div></div>`;
+  // Merge Outlook events (skip duplicates by matching date+taskTitle)
+  outlookEvents.forEach(oe=>{
+    if(!oe.date)return;
+    const key=oe.date;
+    if(!evMap[key])evMap[key]=[];
+    // Check if this already exists from Clientflow data
+    const isDup=evMap[key].some(ex=>ex.source==='clientflow'&&ex.taskTitle===oe.taskTitle&&(ex.name||'')===(oe.name||''));
+    if(!isDup)evMap[key].push(oe);
+  });
+
+  const syncLabel=outlookSyncing?'⏳ Syncing...':outlookLastSync?'Last synced '+outlookLastSync.toLocaleTimeString():'Not synced';
+  let h=`<div class="cal-wrap"><div class="cal-header"><div class="cal-month-title">📅 ${mNames[calMonth]} ${calYear}</div><div class="cal-nav"><span class="cal-sync-status">${syncLabel}</span><button class="cal-sync-btn${outlookSyncing?' syncing':''}" onclick="syncFromOutlook()">🔄 Sync from Outlook</button><button class="cal-today-btn" onclick="calToday()">Today</button><button class="cal-nav-btn" onclick="calNav(-1)">‹</button><button class="cal-nav-btn" onclick="calNav(1)">›</button></div></div>`;
   h+=`<div class="cal-grid">`;
   dNames.forEach(d=>{h+=`<div class="cal-day-header">${d}</div>`;});
 
@@ -309,10 +368,13 @@ function buildCalendar(allSubs){
     h+=`<div class="cal-day${isToday?' today':''}"><div class="cal-day-num">${d}</div>`;
     const maxShow=3;
     dayEvents.slice(0,maxShow).forEach(ev=>{
-      const col=clientColors[ev.clientName]||'#5B6ABF';
+      const isOutlook=ev.source==='outlook';
+      const col=isOutlook?'#E8A33D':clientColors[ev.clientName]||'#5B6ABF';
       const label=(ev.name?ev.name+': ':'')+ev.taskTitle;
       const timeStr=ev.time?formatTime(ev.time)+' ':'';
-      h+=`<div class="cal-event" style="background:${col}18;color:${col};border-left:2px solid ${col}" title="${esc(ev.clientName+' — '+ev.taskTitle+(ev.name?' — '+ev.name:''))}" onclick="activeClientId=${ev.clientId};showDashboard=false;render()">${timeStr}${esc(label)}</div>`;
+      const evClass=isOutlook?'cal-event outlook-event':'cal-event';
+      const clickAction=ev.clientId?`onclick="activeClientId=${ev.clientId};showDashboard=false;render()"`:'';
+      h+=`<div class="${evClass}" style="background:${col}18;color:${col};border-left:2px solid ${col}" title="${esc((ev.clientName?ev.clientName+' — ':'')+ev.taskTitle+(ev.name?' — '+ev.name:'')+(isOutlook?' (from Outlook)':''))}" ${clickAction}>${timeStr}${esc(label)}</div>`;
     });
     if(dayEvents.length>maxShow){
       h+=`<div class="cal-event-more">+${dayEvents.length-maxShow} more</div>`;
@@ -327,7 +389,7 @@ function buildCalendar(allSubs){
     h+=`<div class="cal-day outside"><div class="cal-day-num">${i}</div></div>`;
   }
 
-  h+=`</div></div>`;
+  h+=`</div><div class="cal-legend"><span><span class="cal-legend-dot" style="background:#5B6ABF"></span>Clientflow events</span><span><span class="cal-legend-dot" style="background:#E8A33D"></span>Outlook only</span>${outlookLastSync?'<span>🔄 Synced '+outlookLastSync.toLocaleTimeString()+'</span>':''}</div></div>`;
   return h;
 }
 
