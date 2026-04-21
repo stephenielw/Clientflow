@@ -318,10 +318,12 @@ function loadOutlookEvents(){
   firebase.database().ref('clientflow-outlook').on('value',snap=>{
     const val=snap.val();
     if(val&&val.events){
-      outlookEvents=val.events;
-      outlookLastSync=val.syncedAt?new Date(val.syncedAt):null;
-      if(showDashboard)render();
+      // Firebase converts arrays to objects — convert back
+      const evts=val.events;
+      outlookEvents=Array.isArray(evts)?evts:Object.values(evts);
+      outlookLastSync=val.syncedAt||null;
     }
+    render();
   });
 }
 
@@ -347,7 +349,8 @@ function buildCalendar(allSubs){
   });
 
   // Merge Outlook events (skip duplicates by matching date+taskTitle)
-  outlookEvents.forEach(oe=>{
+  const olEvts=Array.isArray(outlookEvents)?outlookEvents:Object.values(outlookEvents||{});
+  olEvts.forEach(oe=>{
     if(!oe.date)return;
     const key=oe.date;
     if(!evMap[key])evMap[key]=[];
