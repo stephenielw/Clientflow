@@ -255,7 +255,7 @@ if(sessionStorage.getItem('cf-auth')==='true'){document.getElementById('loginScr
 
 firebase.database().ref('.info/connected').on('value',s=>{const d=document.getElementById('syncDot'),t=document.getElementById('syncText');if(s.val()){d.className='sync-dot';t.textContent='Synced live';}else{d.className='sync-dot offline';t.textContent='Offline';}});
 
-function load(){dataRef.on('value',snap=>{if(saving)return;const v=snap.val();if(v){data=v;if(!data.clients)data.clients=[];data.clients.forEach(c=>{if(!c.tasks)c.tasks=[];});if(!data.nextClientId)data.nextClientId=1;if(!data.nextTaskId)data.nextTaskId=1;if(activeClientId&&!getClient(activeClientId))activeClientId=data.clients.length?data.clients[0].id:null;if(!activeClientId&&data.clients.length)activeClientId=data.clients[0].id;}render();});}
+function load(){loadOutlookEvents();dataRef.on('value',snap=>{if(saving)return;const v=snap.val();if(v){data=v;if(!data.clients)data.clients=[];data.clients.forEach(c=>{if(!c.tasks)c.tasks=[];});if(!data.nextClientId)data.nextClientId=1;if(!data.nextTaskId)data.nextTaskId=1;if(activeClientId&&!getClient(activeClientId))activeClientId=data.clients.length?data.clients[0].id:null;if(!activeClientId&&data.clients.length)activeClientId=data.clients[0].id;}render();});}
 function save(){saving=true;const d=document.getElementById('syncDot'),t=document.getElementById('syncText');d.className='sync-dot syncing';t.textContent='Saving...';dataRef.set(data).then(()=>{d.className='sync-dot';t.textContent='Synced live';saving=false;}).catch(()=>{d.className='sync-dot offline';t.textContent='Error';saving=false;});}
 
 function getClient(id){return data.clients.find(c=>c.id===id);}
@@ -282,33 +282,28 @@ async function syncFromOutlook(){
   outlookSyncing=true;render();
   try{
     const calId=await findOrCreateCalendar();
-    // Fetch events from 1 year ago to 1 year ahead
     const now=new Date();
     const start=new Date(now.getFullYear()-1,0,1).toISOString();
     const end=new Date(now.getFullYear()+1,11,31).toISOString();
-    let allEvs=[],url='/me/calendars/'+calId+'/calendarView?startDateTime='+encodeURIComponent(start)+'&endDateTime='+encodeURIComponent(end)+'&$top=200&$select=subject,start,end,location,body,isOrganizer';
+    let allEvs=[],url='/me/calendars/'+calId+'/calendarView?startDateTime='+encodeURIComponent(start)+'&endDateTime='+encodeURIComponent(end)+'&$top=200&$select=subject,start,end,location,body';
     while(url){
       const resp=await graphFetch(url);
       if(resp.value)allEvs=allEvs.concat(resp.value);
       url=resp['@odata.nextLink']?resp['@odata.nextLink'].replace('https://graph.microsoft.com/v1.0',''):null;
     }
-    // Convert to our format
     outlookEvents=allEvs.map(ev=>{
       const startDT=ev.start?.dateTime||'';
       const date=startDT.slice(0,10);
       const time=startDT.slice(11,16);
       const subject=ev.subject||'';
-      // Try to detect if this came from Clientflow (has " - " separator for sub name)
       const parts=subject.split(' - ');
       const taskTitle=parts[0]||subject;
       const subName=parts.length>1?parts.slice(1).join(' - '):'';
-      return{
-        date,time,name:subName,taskTitle,
-        clientName:ev.location?.displayName||'',
-        source:'outlook',outlookId:ev.id,
-        body:ev.body?.content||''
-      };
+      return{date,time,name:subName,taskTitle,clientName:ev.location?.displayName||'',source:'outlook'};
     });
+    // Save to Firebase so all team members see the same calendar
+    const syncData={events:outlookEvents,syncedAt:new Date().toISOString(),syncedBy:'team'};
+    await firebase.database().ref('clientflow-outlook').set(syncData);
     outlookLastSync=new Date();
     outlookSyncing=false;render();
   }catch(e){
@@ -316,6 +311,18 @@ async function syncFromOutlook(){
     outlookSyncing=false;render();
     alert('Failed to sync from Outlook. Make sure you are signed in.\n\nError: '+(e.message||e));
   }
+}
+
+// Listen for shared Outlook events from Firebase
+function loadOutlookEvents(){
+  firebase.database().ref('clientflow-outlook').on('value',snap=>{
+    const val=snap.val();
+    if(val&&val.events){
+      outlookEvents=val.events;
+      outlookLastSync=val.syncedAt?new Date(val.syncedAt):null;
+      if(showDashboard)render();
+    }
+  });
 }
 
 function buildCalendar(allSubs){
@@ -349,7 +356,7 @@ function buildCalendar(allSubs){
     if(!isDup)evMap[key].push(oe);
   });
 
-  const syncLabel=outlookSyncing?'⏳ Syncing...':outlookLastSync?'Last synced '+outlookLastSync.toLocaleTimeString():'Not synced';
+  const syncLabel=outlookSyncing?'⏳ Syncing...':outlookLastSync?(typeof outlookLastSync==='string'?'Last synced '+new Date(outlookLastSync).toLocaleString():'Last synced '+outlookLastSync.toLocaleString()):'Not synced from Outlook yet';
   let h=`<div class="cal-wrap"><div class="cal-header"><div class="cal-month-title">📅 ${mNames[calMonth]} ${calYear}</div><div class="cal-nav"><span class="cal-sync-status">${syncLabel}</span><button class="cal-sync-btn${outlookSyncing?' syncing':''}" onclick="syncFromOutlook()">🔄 Sync from Outlook</button><button class="cal-today-btn" onclick="calToday()">Today</button><button class="cal-nav-btn" onclick="calNav(-1)">‹</button><button class="cal-nav-btn" onclick="calNav(1)">›</button></div></div>`;
   h+=`<div class="cal-grid">`;
   dNames.forEach(d=>{h+=`<div class="cal-day-header">${d}</div>`;});
@@ -389,7 +396,7 @@ function buildCalendar(allSubs){
     h+=`<div class="cal-day outside"><div class="cal-day-num">${i}</div></div>`;
   }
 
-  h+=`</div><div class="cal-legend"><span><span class="cal-legend-dot" style="background:#5B6ABF"></span>Clientflow events</span><span><span class="cal-legend-dot" style="background:#E8A33D"></span>Outlook only</span>${outlookLastSync?'<span>🔄 Synced '+outlookLastSync.toLocaleTimeString()+'</span>':''}</div></div>`;
+  h+=`</div><div class="cal-legend"><span><span class="cal-legend-dot" style="background:#5B6ABF"></span>Clientflow events</span><span><span class="cal-legend-dot" style="background:#E8A33D"></span>Outlook only</span>${outlookLastSync?'<span>🔄 '+(typeof outlookLastSync==='string'?new Date(outlookLastSync).toLocaleString():outlookLastSync.toLocaleString())+'</span>':''}</div></div>`;
   return h;
 }
 
