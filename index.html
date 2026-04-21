@@ -194,6 +194,28 @@
   .dash-alert-task { font-size: 13px; font-weight: 600; }
   .dash-alert-detail { font-size: 11px; color: #888; }
   .dash-empty { font-size: 13px; color: #aaa; font-style: italic; padding: 8px 0; }
+
+  /* Calendar */
+  .cal-wrap { background: #fff; border-radius: 12px; padding: 20px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); margin-bottom: 28px; }
+  .cal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+  .cal-month-title { font-size: 16px; font-weight: 700; font-family: 'Playfair Display', serif; }
+  .cal-nav { display: flex; gap: 6px; }
+  .cal-nav-btn { width: 32px; height: 32px; border-radius: 8px; border: 1px solid #E0E0EE; background: #fff; color: #555; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-family: 'DM Sans', sans-serif; }
+  .cal-nav-btn:hover { background: #F0F0F5; }
+  .cal-today-btn { padding: 4px 12px; border-radius: 8px; border: 1px solid #E0E0EE; background: #fff; color: #555; font-size: 12px; font-weight: 600; cursor: pointer; font-family: 'DM Sans', sans-serif; }
+  .cal-today-btn:hover { background: #F0F0F5; }
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: #E8E8F0; border: 1px solid #E8E8F0; border-radius: 8px; overflow: hidden; }
+  .cal-day-header { background: #F5F5FA; padding: 8px 4px; text-align: center; font-size: 11px; font-weight: 600; color: #888; text-transform: uppercase; }
+  .cal-day { background: #fff; min-height: 80px; padding: 4px; position: relative; vertical-align: top; cursor: default; }
+  .cal-day.outside { background: #FAFAFC; }
+  .cal-day.today { background: #F0F0FF; }
+  .cal-day-num { font-size: 12px; font-weight: 600; color: #333; padding: 2px 4px; }
+  .cal-day.outside .cal-day-num { color: #ccc; }
+  .cal-day.today .cal-day-num { color: #5B6ABF; background: #E0E7FF; border-radius: 4px; display: inline-block; }
+  .cal-event { font-size: 10px; padding: 2px 5px; border-radius: 4px; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; line-height: 1.4; }
+  .cal-event:hover { filter: brightness(0.92); }
+  .cal-event-more { font-size: 10px; color: #888; padding: 1px 5px; cursor: pointer; }
+  .cal-event-more:hover { color: #5B6ABF; }
   @media (max-width:700px) { .sidebar{width:220px;min-width:180px;} .main-header,.filter-bar,.task-list,.client-info-bar,.section-tabs{padding-left:16px;padding-right:16px;} .dash-grid{grid-template-columns:1fr 1fr;} }
 </style>
 </head>
@@ -217,6 +239,7 @@ const SUB_COLORS={'Scheduled':{bg:'#E0E7FF',color:'#4338CA'},'Confirmed':{bg:'#D
 firebase.initializeApp({apiKey:"AIzaSyCDQ-qSdPOeESryaNzr5UN0xRDJ2MyWO7A",authDomain:"services-3e475.firebaseapp.com",databaseURL:"https://services-3e475-default-rtdb.firebaseio.com",projectId:"services-3e475",storageBucket:"services-3e475.firebasestorage.app",messagingSenderId:"389984261303",appId:"1:389984261303:web:063df6c348ed82687f6932"});
 const dataRef=firebase.database().ref('clientflow');
 let data={clients:[],nextClientId:1,nextTaskId:1},activeClientId=null,filterStatus='All',filterPriority='All',searchTerm='',editingTaskId=null,selectedColor=COLORS[0],viewTab='tasks',taskImages=[],taskPdfs=[],lightboxImages=[],lightboxIndex=0,saving=false,editingClientColor='',taskSubSections=[],showDashboard=false;
+let calYear=new Date().getFullYear(),calMonth=new Date().getMonth();
 const TEAM_PASSWORD='Clientflow2026';
 
 function attemptLogin(){if(document.getElementById('loginPassword').value===TEAM_PASSWORD){sessionStorage.setItem('cf-auth','true');document.getElementById('loginScreen').style.display='none';document.getElementById('app').style.display='flex';load();}else{document.getElementById('loginError').textContent='Incorrect password.';document.getElementById('loginPassword').value='';}}
@@ -243,6 +266,70 @@ function toggleDashboard(){showDashboard=!showDashboard;render();}
 function renderSidebar(){document.getElementById('clientCount').textContent=data.clients.length+' client'+(data.clients.length!==1?'s':'');
   document.getElementById('dashBtn').className='dash-btn'+(showDashboard?' active':'');
   const l=document.getElementById('clientList');l.innerHTML='';data.clients.forEach(c=>{const s=stats(c),a=c.id===activeClientId&&!showDashboard,d=document.createElement('div');d.className='client-card'+(a?' active':'');d.style.borderLeft='4px solid '+c.color;d.onclick=()=>{activeClientId=c.id;showDashboard=false;filterStatus='All';filterPriority='All';searchTerm='';viewTab='tasks';render();};let ch=`<span class="stat-chip">${s.total} task${s.total!==1?'s':''}</span>`;if(c.isHmp)ch+=`<span class="stat-chip hmp">HMP</span>`;if(s.done)ch+=`<span class="stat-chip done">${s.done} done</span>`;if(s.inProgress)ch+=`<span class="stat-chip active-tasks">${s.inProgress} active</span>`;d.innerHTML=`<div class="client-card-top"><span class="client-name">${esc(c.name)}</span><button class="delete-btn" onclick="event.stopPropagation();deleteClient(${c.id})">&times;</button></div><div class="client-stats">${ch}</div>`;l.appendChild(d);});}
+
+function calNav(dir){calMonth+=dir;if(calMonth>11){calMonth=0;calYear++;}if(calMonth<0){calMonth=11;calYear--;}render();}
+function calToday(){calYear=new Date().getFullYear();calMonth=new Date().getMonth();render();}
+
+function buildCalendar(allSubs){
+  const mNames=['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const dNames=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const today=new Date();today.setHours(0,0,0,0);
+  const first=new Date(calYear,calMonth,1);
+  const startDay=first.getDay();
+  const daysInMonth=new Date(calYear,calMonth+1,0).getDate();
+  const prevDays=new Date(calYear,calMonth,0).getDate();
+
+  // Build event map by date key
+  const evMap={};
+  // Client color map
+  const clientColors={};
+  data.clients.forEach(c=>{clientColors[c.name]=c.color||'#5B6ABF';});
+  allSubs.forEach(s=>{
+    if(!s.date)return;
+    const key=s.date;
+    if(!evMap[key])evMap[key]=[];
+    evMap[key].push(s);
+  });
+
+  let h=`<div class="cal-wrap"><div class="cal-header"><div class="cal-month-title">📅 ${mNames[calMonth]} ${calYear}</div><div class="cal-nav"><button class="cal-today-btn" onclick="calToday()">Today</button><button class="cal-nav-btn" onclick="calNav(-1)">‹</button><button class="cal-nav-btn" onclick="calNav(1)">›</button></div></div>`;
+  h+=`<div class="cal-grid">`;
+  dNames.forEach(d=>{h+=`<div class="cal-day-header">${d}</div>`;});
+
+  // Previous month filler
+  for(let i=startDay-1;i>=0;i--){
+    const d=prevDays-i;
+    h+=`<div class="cal-day outside"><div class="cal-day-num">${d}</div></div>`;
+  }
+
+  // Current month days
+  for(let d=1;d<=daysInMonth;d++){
+    const dateStr=calYear+'-'+String(calMonth+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+    const isToday=today.getFullYear()===calYear&&today.getMonth()===calMonth&&today.getDate()===d;
+    const dayEvents=evMap[dateStr]||[];
+    h+=`<div class="cal-day${isToday?' today':''}"><div class="cal-day-num">${d}</div>`;
+    const maxShow=3;
+    dayEvents.slice(0,maxShow).forEach(ev=>{
+      const col=clientColors[ev.clientName]||'#5B6ABF';
+      const label=(ev.name?ev.name+': ':'')+ev.taskTitle;
+      const timeStr=ev.time?formatTime(ev.time)+' ':'';
+      h+=`<div class="cal-event" style="background:${col}18;color:${col};border-left:2px solid ${col}" title="${esc(ev.clientName+' — '+ev.taskTitle+(ev.name?' — '+ev.name:''))}" onclick="activeClientId=${ev.clientId};showDashboard=false;render()">${timeStr}${esc(label)}</div>`;
+    });
+    if(dayEvents.length>maxShow){
+      h+=`<div class="cal-event-more">+${dayEvents.length-maxShow} more</div>`;
+    }
+    h+=`</div>`;
+  }
+
+  // Next month filler
+  const totalCells=startDay+daysInMonth;
+  const remaining=totalCells%7===0?0:7-(totalCells%7);
+  for(let i=1;i<=remaining;i++){
+    h+=`<div class="cal-day outside"><div class="cal-day-num">${i}</div></div>`;
+  }
+
+  h+=`</div></div>`;
+  return h;
+}
 
 function renderDashboard(){
   const p=document.getElementById('mainPanel');
@@ -277,6 +364,9 @@ function renderDashboard(){
     <div class="dash-card"><div class="dash-card-label">HMP Tasks</div><div class="dash-card-value">${hmpDone}<span style="font-size:16px;color:#888">/${hmpTotal}</span></div><div class="dash-card-sub">${hmpPct}% complete</div></div>
     <div class="dash-card"><div class="dash-card-label">Upcoming (30 days)</div><div class="dash-card-value">${upcoming.length}</div><div class="dash-card-sub">${overdue.length?'<span style="color:#E84D3D;font-weight:600">'+overdue.length+' overdue</span>':'All on track'}</div></div>
   </div>`;
+
+  // Calendar
+  html+=buildCalendar(allSubs);
 
   // Client progress
   html+=`<div class="dash-section"><div class="dash-section-title">👥 Client Progress</div>`;
