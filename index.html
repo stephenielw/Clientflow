@@ -7,6 +7,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 <script src="https://alcdn.msauth.net/browser/2.38.0/js/msal-browser.min.js"></script>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -432,7 +433,7 @@ function renderDashboard(){
   const highPri=allTasks.filter(t=>t.priority==='high'&&t.status!=='Done'&&!t.hmpTask);
 
   // Summary cards
-  let html=`<div class="dashboard"><div class="dash-title">📊 Dashboard</div>
+  let html=`<div class="dashboard"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px"><div class="dash-title" style="margin-bottom:0">📊 Dashboard</div><button class="export-btn" onclick="exportAllToExcel()" style="border-color:#2E7D46">📊 Export All to Excel</button></div>
   <div class="dash-grid">
     <div class="dash-card"><div class="dash-card-label">Total Tasks</div><div class="dash-card-value">${totalT}</div><div class="dash-card-sub">${doneT} done · ${inProgT} in progress · ${totalT-doneT-inProgT} to do</div></div>
     <div class="dash-card"><div class="dash-card-label">Completion</div><div class="dash-card-value" style="color:${pct>=75?'#2E7D46':pct>=40?'#B8860B':'#E84D3D'}">${pct}%</div><div class="dash-card-sub"><div class="dash-bar-wrap" style="height:8px;margin-top:6px"><div class="dash-bar" style="width:${pct}%;background:${pct>=75?'#4CAF6A':pct>=40?'#E8A33D':'#E84D3D'}"></div></div></div></div>
@@ -705,6 +706,90 @@ function exportToWord(){
   const link=document.createElement('a');link.href=URL.createObjectURL(blob);
   link.download=client.name.replace(/[^a-zA-Z0-9]/g,'_')+'_Tasks.doc';
   link.click();URL.revokeObjectURL(link.href);
+}
+
+// Export all clients to Excel (each client = a tab)
+function exportAllToExcel(){
+  if(!data.clients.length){alert('No clients to export.');return;}
+  const wb=XLSX.utils.book_new();
+
+  data.clients.forEach(c=>{
+    const rows=[];
+    // Client info header rows
+    rows.push(['Client:',c.name]);
+    if(c.address)rows.push(['Address:',c.address]);
+    if(c.herPhone)rows.push(['Her Phone:',c.herPhone]);
+    if(c.hisPhone)rows.push(['His Phone:',c.hisPhone]);
+    if(c.gateCode)rows.push(['Gate Code:',c.gateCode]);
+    if(c.email1)rows.push(['Email 1:',c.email1]);
+    if(c.email2)rows.push(['Email 2:',c.email2]);
+    if(c.isHmp)rows.push(['Type:','HMP Client']);
+    rows.push([]);
+
+    // Task header
+    rows.push(['Task','Status','Priority','Type','Frequency','Month','Subcontractor','Sub Status','Sub Date','Sub Time','Notes']);
+
+    // Sort tasks
+    const pO={high:0,medium:1,low:2},sO={'To Do':0,'In Progress':1,'Done':2};
+    const sorted=[...(c.tasks||[])].sort((a,b)=>{
+      if(a.hmpTask!==b.hmpTask)return a.hmpTask?1:-1;
+      if(pO[a.priority]!==pO[b.priority])return pO[a.priority]-pO[b.priority];
+      return sO[a.status]-sO[b.status];
+    });
+
+    sorted.forEach(t=>{
+      const subs=t.subcontractors||[];
+      const type=t.hmpTask?'HMP':'Task';
+      const pri=t.hmpTask?'':PRIORITY[t.priority]?.label||'Med';
+
+      if(subs.length>0){
+        subs.forEach((s,i)=>{
+          rows.push([
+            i===0?t.title:'',
+            i===0?t.status:'',
+            i===0?pri:'',
+            i===0?type:'',
+            i===0?(t.hmpSchedule||''):'',
+            i===0?(t.scheduledMonth||''):'',
+            s.name||'',
+            s.status||'',
+            s.date?formatDate(s.date):'',
+            s.time?formatTime(s.time):'',
+            i===0?(t.notes||''):''
+          ]);
+        });
+      } else {
+        rows.push([
+          t.title,
+          t.status,
+          pri,
+          type,
+          t.hmpSchedule||'',
+          t.scheduledMonth||'',
+          t.subName||'',
+          t.subStatus||'',
+          t.subDate?formatDate(t.subDate):'',
+          '',
+          t.notes||''
+        ]);
+      }
+    });
+
+    const ws=XLSX.utils.aoa_to_sheet(rows);
+
+    // Column widths
+    ws['!cols']=[{wch:30},{wch:12},{wch:8},{wch:6},{wch:14},{wch:12},{wch:20},{wch:12},{wch:14},{wch:10},{wch:35}];
+
+    // Sheet name (max 31 chars, no special chars)
+    let sheetName=c.name.replace(/[\\\/\?\*\[\]]/g,'').substring(0,31);
+    // Avoid duplicate sheet names
+    let suffix=1;let origName=sheetName;
+    while(wb.SheetNames.includes(sheetName)){sheetName=origName.substring(0,28)+'_'+suffix;suffix++;}
+
+    XLSX.utils.book_append_sheet(wb,ws,sheetName);
+  });
+
+  XLSX.writeFile(wb,'Clientflow_All_Clients.xlsx');
 }
 
 // Microsoft Graph / Outlook integration
